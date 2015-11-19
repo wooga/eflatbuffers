@@ -22,44 +22,101 @@ defmodule Eflatbuffers do
     << 0 >>
   end
 
+  def read(:bool, vtable_pointer, data) do
+    case read_from_data_buffer(vtable_pointer, data, 8) do
+      << 0 >> -> false
+      << 1 >> -> true
+    end
+  end
+
   def write(:byte, byte) when is_integer(byte) and byte >= -128 and byte <= 127 do
     << byte :: signed-size(8) >>
+  end
+
+  def read(:byte, vtable_pointer, data) do
+    << value :: signed-size(8) >> = read_from_data_buffer(vtable_pointer, data, 8)
+    value
   end
 
   def write(:ubyte, byte) when is_integer(byte) and byte >= 0 and byte <= 255 do
     << byte :: unsigned-size(8) >>
   end
 
+  def read(:ubyte, vtable_pointer, data) do
+    << value :: unsigned-size(8) >> = read_from_data_buffer(vtable_pointer, data, 8)
+    value
+  end
+
   def write(:short, integer) when is_integer(integer) and integer <= 32_767 and integer >= -32_768 do
-    << integer :: little-size(16) >>
+    << integer :: signed-little-size(16) >>
+  end
+
+  def read(:short, vtable_pointer, data) do
+    << value :: signed-little-size(16) >> = read_from_data_buffer(vtable_pointer, data, 16)
+    value
   end
 
   def write(:ushort, integer) when is_integer(integer) and integer >= 0 and integer <= 65536 do
-    << integer :: little-size(16) >>
+    << integer :: unsigned-little-size(16) >>
+  end
+
+  def read(:ushort, vtable_pointer, data) do
+    << value :: unsigned-little-size(16) >> = read_from_data_buffer(vtable_pointer, data, 16)
+    value
   end
 
   def write(:int, integer) when is_integer(integer) and integer >= -2_147_483_648 and integer <= 2_147_483_647 do
     << integer :: signed-little-size(32) >>
   end
 
+  def read(:int, vtable_pointer, data) do
+    << value :: signed-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
+    value
+  end
+
   def write(:uint, integer) when is_integer(integer) and integer >= 0 and integer <= 4_294_967_295 do
-    << integer :: little-size(32) >>
+    << integer :: unsigned-little-size(32) >>
+  end
+
+  def read(:uint, vtable_pointer, data) do
+    << value :: unsigned-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
+    value
   end
 
   def write(:float, float) when (is_float(float) or is_integer(float)) and float >= -3.4E+38 and float <= +3.4E+38 do
     << float :: float-little-size(32) >>
   end
 
+  def read(:float, vtable_pointer, data) do
+    << value :: float-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
+    value
+  end
+
   def write(:long, integer) when is_integer(integer) and integer >= -9_223_372_036_854_775_808 and integer <= 9_223_372_036_854_775_807 do
     << integer :: signed-little-size(64) >>
+  end
+
+  def read(:long, vtable_pointer, data) do
+    << value :: signed-little-size(64) >> = read_from_data_buffer(vtable_pointer, data, 64)
+    value
   end
 
   def write(:ulong, integer) when is_integer(integer) and integer >= 0 and integer <= 18_446_744_073_709_551_615 do
     << integer :: unsigned-little-size(64) >>
   end
 
+  def read(:ulong, vtable_pointer, data) do
+    << value :: unsigned-little-size(64) >> = read_from_data_buffer(vtable_pointer, data, 64)
+    value
+  end
+
   def write(:double, float) when (is_float(float) or is_integer(float)) and float >= -1.7E+308 and float <= +1.7E+308 do
     << float :: float-little-size(64) >>
+  end
+
+  def read(:double, vtable_pointer, data) do
+    << value :: float-little-size(64) >> = read_from_data_buffer(vtable_pointer, data, 64)
+    value
   end
 
   def write(:string, string) when is_binary(string) do
@@ -69,6 +126,12 @@ defmodule Eflatbuffers do
   def write({:vector, type}, list) when is_list(list) do
     [ << length(list) :: little-little-size(32) >>, Enum.map(list, fn(e) -> write(type, e) end)]
   end
+
+  def read_from_data_buffer(data_pointer, data, data_size) do
+    << _ :: binary-size(data_pointer), value :: bitstring-size(data_size), _ :: binary >> = data
+    value
+  end
+
 
 
   def write({:table, fields}, map) when is_map(map) and is_list(fields) do
@@ -84,32 +147,34 @@ defmodule Eflatbuffers do
   def read({:table, fields}, table_pointer, data) do
     << _ :: binary-size(table_pointer), vtable_offset :: little-size(32), _ :: binary >> = data
     vtable_pointer = table_pointer - vtable_offset
-    << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _ :: binary >> = data
-    vtable_content_pointer = vtable_pointer + 2
-    vtable_content_length  = vtable_length  - 2
-    read_fields(fields, vtable_content_pointer, data)
+    << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _data_buffer_length :: little-size(16), _ :: binary >> = data
+    vtable_fields_pointer = vtable_pointer + 4
+    vtable_fields_length  = vtable_length  - 4
+    << _ :: binary-size(vtable_fields_pointer), vtable :: binary-size(vtable_fields_length), _ :: binary >> = data
+    IO.puts "vtable: #{inspect(vtable)}"
+    data_buffer_pointer = table_pointer
+    #vtable_content_pointer = vtable_pointer + 4
+    #IO.inspect vtable_content_pointer
+    read_fields(fields, vtable, data_buffer_pointer, data)
   end
 
-  def read_fields(fields, vtable_content_pointer, data) do
-    read_fields(fields, vtable_content_pointer, data, %{})
+  def read(type, _, _) do
+    throw({:error, {:unknown_type, type}})
   end
 
-  def read_fields([], _, _, map) do
+  def read_fields(fields, vtable, data_buffer_pointer, data) do
+    read_fields(fields, vtable, data_buffer_pointer, data, %{})
+  end
+
+  def read_fields([], _, _, _, map) do
     map
   end
 
-  def read_fields([{name, type} | fields], vtable_pointer, data, map) do
-    value = read(type, vtable_pointer, data)
+  def read_fields([{name, type} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, map) do
+    data_pointer = data_buffer_pointer + data_offset
+    value = read(type, data_pointer, data)
     map_new = Map.put(map, name, value)
-    read_fields(fields, vtable_pointer + 2, data, map_new)
-  end
-
-
-  def read(:short, vtable_pointer, data) do
-    << _ :: binary-size(vtable_pointer), data_offset :: little-size(16), _ :: binary >> = data
-    data_pointer = vtable_pointer + data_offset + 2
-    << _ :: binary-size(data_pointer), value :: little-size(16), _ :: binary >> = data
-    value
+    read_fields(fields, vtable, data_buffer_pointer, data, map_new)
   end
 
   def write(type, data) do

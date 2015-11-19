@@ -7,7 +7,7 @@ defmodule EflatbuffersTest do
   end
 
   test "creating test data" do
-    expected = {:ok, <<12, 0, 0, 0, 0, 0, 6, 0, 8, 0, 6, 0, 6, 0, 0, 0, 0, 0, 17, 0>>}
+    expected = {:ok, <<12, 0, 0, 0, 8, 0, 8, 0, 6, 0, 0, 0, 8, 0, 0, 0, 0, 0, 17, 0>>}
     assert expected == reference_fb(:simple_table, %{field_a: 17})
   end
 
@@ -121,7 +121,7 @@ defmodule EflatbuffersTest do
       ]}
     schema = { %{scalars: table}, %{root_type: :scalars} }
     map = %{
-      my_byte: -3,
+      my_byte: 66,
       my_ubyte: 200,
       my_bool: true,
       my_short: -23,
@@ -135,22 +135,28 @@ defmodule EflatbuffersTest do
     }
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
+    IO.inspect :erlang.iolist_to_binary(reply)
     assert_eq(:all_my_scalars, map, reply)
+    # reading
+    assert(Map.merge(map, %{my_float: 3.124000072479248}) == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "read simple table" do
     table = {:table,
       [
         field_a: :short,
+        field_b: :short,
       ]}
     schema = { %{table_a: table}, %{root_type: :table_a} }
     map = %{
       field_a: 42,
+      field_b: 23,
     }
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
     IO.inspect :erlang.iolist_to_binary(reply)
     assert_eq(:simple_table, map, reply)
+    # reading
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
