@@ -172,48 +172,6 @@ defmodule EflatbuffersTest do
     reply = Eflatbuffers.write_fb(map, schema)
     assert_eq(:table_bool_string_string, map, reply)
   end
-#{
-#        let fbb = FlatBufferBuilder()
-#        let sOffset = try! fbb.createString("max")
-#        XCTAssertEqual(fbb.data, [3,0,0,0,109,97,120])
-#        try! fbb.openObject(3)
-#        XCTAssertEqual(fbb.data, [3,0,0,0,109,97,120])
-#        try! fbb.addPropertyToOpenObject(0, value: true, defaultValue: false)
-#        XCTAssertEqual(fbb.data, [1,3,0,0,0,109,97,120])
-#        try! fbb.addPropertyOffsetToOpenObject(1, offset: sOffset)
-#        XCTAssertEqual(fbb.data, [5,0,0,0,1,3,0,0,0,109,97,120])
-#        let oOffset = try! fbb.closeObject()
-#
-#        XCTAssertEqual(oOffset.value, 16)
-#        XCTAssertEqual(fbb.data,
-#            [ 10,  0,              // vTable length
-#               9,  0,              // object data buffer length
-
-#               8,  0,              // relative offest of first property
-#               4,  0,              // relative offest of second property
-#               0,  0,              // relative offest of third property - 0,0 meaning it is not set
-
-
-#              10,  0,  0,  0,      // start of the object data buffer and vTable offset
-
-#               5,  0,  0,  0,      // second property string offest
-#               1,                  // first property boolean value
-
-
-
-#               3,  0,  0,0,        // string length
-#             109, 97,120]          // string 'max'
-#        )
-#    }
-
-# <<16, 0, 0, 0, 0, 0, 10, 0, 12, 0, 7, 0, 0, 0, 8, 0,
-#10, 0, 0, 0, 0, 0, 0, 1, 4, 0, 0, 0,
-
-#3, 0, 0, 0, 109, 97, 120,
-
-#0>>
-
-
 
   def assert_eq(schema, map, binary) do
     map_looped = reference_map(schema, :erlang.iolist_to_binary(binary))

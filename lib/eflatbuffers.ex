@@ -153,8 +153,6 @@ defmodule Eflatbuffers do
     << _ :: binary-size(vtable_fields_pointer), vtable :: binary-size(vtable_fields_length), _ :: binary >> = data
     IO.puts "vtable: #{inspect(vtable)}"
     data_buffer_pointer = table_pointer
-    #vtable_content_pointer = vtable_pointer + 4
-    #IO.inspect vtable_content_pointer
     read_fields(fields, vtable, data_buffer_pointer, data)
   end
 
@@ -248,10 +246,6 @@ defmodule Eflatbuffers do
   def flatten_intermediate_data_buffer([{_name, value} | data_buffer], acc) do
     flatten_intermediate_data_buffer(data_buffer, [value | acc])
   end
-
-
-
-
 
   def scalar?(:string),      do: false
   def scalar?({:vector, _}), do: false
