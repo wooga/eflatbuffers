@@ -1,9 +1,17 @@
 defmodule Eflatbuffers do
 
-  def write_fb({tables, %{root_type: root_type}}, map) do
+  def write_fb(map, {tables, %{root_type: root_type}}) do
     root_table = [<< vtable_offset :: little-size(16) >> | _] =
     write(Map.get(tables, root_type), map)
     [<< (vtable_offset + 6) :: little-size(16) >>, << 0, 0, 0, 0 >>, root_table]
+  end
+
+  def read_fb(<< root_table_pointer :: little-size(16), _ :: binary >> = data, {tables, %{root_type: root_type}}) do
+    read(Map.get(tables, root_type), root_table_pointer, data)
+  end
+
+  def write(_, nil) do
+    <<>>
   end
 
   def write(:bool, true) do
@@ -12,10 +20,6 @@ defmodule Eflatbuffers do
 
   def write(:bool, false) do
     << 0 >>
-  end
-
-  def write(:bool, nil) do
-    <<>>
   end
 
   def write(:byte, byte) when is_integer(byte) and byte >= -128 and byte <= 127 do
@@ -39,7 +43,7 @@ defmodule Eflatbuffers do
   end
 
   def write(:uint, integer) when is_integer(integer) and integer >= 0 and integer <= 4_294_967_295 do
-    << integer :: signed-little-size(32) >>
+    << integer :: little-size(32) >>
   end
 
   def write(:float, float) when (is_float(float) or is_integer(float)) and float >= -3.4E+38 and float <= +3.4E+38 do
@@ -67,49 +71,6 @@ defmodule Eflatbuffers do
   end
 
 
-  #  def write({:table, fields}, map) when is_map(map) do
-  #    {non_scalar_fields, scalar_fields} = Enum.partition(fields, fn({_, type}) -> is_non_scalar(type) end)
-  #    IO.inspect {non_scalar_fields, scalar_fields}
-  #    scalar_data = Enum.map(
-  #      scalar_fields,
-  #      fn({name, type}) ->
-  #        value = Map.get(map, name)
-  #        write(type, value)
-  #      end
-  #    )
-  #    {non_scalar_pointer, non_scalar_data, _} = Enum.reduce(
-  #      non_scalar_fields,
-  #      {[], [], 0},
-  #      fn({name, type}, {acc_pointer, acc_data, length_since}) ->
-  #        value = Map.get(map, name)
-  #        data  = write(type, value)
-  #        data_length = :erlang.iolist_size(data)
-  #        {[length_since|acc_pointer], [data|acc_data], length_since + data_length}
-  #      end
-  #    )
-  #    IO.inspect non_scalar_pointer
-  #    {non_scalar_pointer_with_padding, _} =
-  #      Enum.reduce(
-  #        non_scalar_pointer,
-  #        {[], 0},
-  #        fn(pointer, {acc, offset}) ->
-  #          pointer_shifted = pointer + 4 + offset
-  #          {[<< pointer_shifted :: little-size(32) >> | acc ], offset + 4}
-  #        end
-  #      )
-  #    object_data_buffer_length = :erlang.iolist_size([scalar_data, non_scalar_pointer_with_padding])
-  #    {vtable, _} =
-  #    Enum.reduce(
-  #      List.flatten([scalar_data, non_scalar_pointer_with_padding]),
-  #      {[], 0},
-  #      fn(data, {pointer, offset}) ->
-  #          {[<< (offset + 4) :: little-size(16) >> | pointer ], offset + :erlang.iolist_size(data)}
-  #        ("", {pointer, offset}) ->
-  #          {[<< 0 :: little-size(16) >> | pointer ], offset}
-  #      end
-  #    )
-  #    [scalar_data, [non_scalar_pointer_with_padding, Enum.reverse(non_scalar_data)]]
-  #  end
   def write({:table, fields}, map) when is_map(map) and is_list(fields) do
     [intermediate_data_buffer, data] = data_buffer_and_data(fields, map)
     vtable              = vtable(fields, intermediate_data_buffer)
@@ -118,6 +79,37 @@ defmodule Eflatbuffers do
     data_buffer_length  = << :erlang.iolist_size([springboard, data_buffer]) :: little-size(16) >>
     vtable_length       = << :erlang.iolist_size([vtable, springboard])      :: little-size(16) >>
     [vtable_length, data_buffer_length, vtable, springboard, data_buffer, data]
+  end
+
+  def read({:table, fields}, table_pointer, data) do
+    << _ :: binary-size(table_pointer), vtable_offset :: little-size(32), _ :: binary >> = data
+    vtable_pointer = table_pointer - vtable_offset
+    << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _ :: binary >> = data
+    vtable_content_pointer = vtable_pointer + 2
+    vtable_content_length  = vtable_length  - 2
+    read_fields(fields, vtable_content_pointer, data)
+  end
+
+  def read_fields(fields, vtable_content_pointer, data) do
+    read_fields(fields, vtable_content_pointer, data, %{})
+  end
+
+  def read_fields([], _, _, map) do
+    map
+  end
+
+  def read_fields([{name, type} | fields], vtable_pointer, data, map) do
+    value = read(type, vtable_pointer, data)
+    map_new = Map.put(map, name, value)
+    read_fields(fields, vtable_pointer + 2, data, map_new)
+  end
+
+
+  def read(:short, vtable_pointer, data) do
+    << _ :: binary-size(vtable_pointer), data_offset :: little-size(16), _ :: binary >> = data
+    data_pointer = vtable_pointer + data_offset + 2
+    << _ :: binary-size(data_pointer), value :: little-size(16), _ :: binary >> = data
+    value
   end
 
   def write(type, data) do

@@ -133,8 +133,25 @@ defmodule EflatbuffersTest do
       my_ulong: 10000000,
       my_double: 3.141593,
     }
-    reply = Eflatbuffers.write_fb(schema, map)
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
     assert_eq(:all_my_scalars, map, reply)
+  end
+
+  test "read simple table" do
+    table = {:table,
+      [
+        field_a: :short,
+      ]}
+    schema = { %{table_a: table}, %{root_type: :table_a} }
+    map = %{
+      field_a: 42,
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    IO.inspect :erlang.iolist_to_binary(reply)
+    assert_eq(:simple_table, map, reply)
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "write fb" do
@@ -146,7 +163,7 @@ defmodule EflatbuffersTest do
         {:my_omitted_bool, :bool}
     ]}
     schema = {%{table_a: table}, %{root_type: :table_a}}
-    reply = Eflatbuffers.write_fb(schema, map)
+    reply = Eflatbuffers.write_fb(map, schema)
     assert_eq(:table_bool_string_string, map, reply)
   end
 #{
