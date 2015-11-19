@@ -34,7 +34,7 @@ defmodule EflatbuffersTest do
     assert << 255, 255 >> == Eflatbuffers.write(:ushort, 65_535)
     assert << 42,  0 >> == Eflatbuffers.write(:ushort, 42)
     assert << 0, 0 >>     == Eflatbuffers.write(:ushort, 0)
-    assert {:error, {:wrong_type, :ushort, 65536}} == catch_throw(Eflatbuffers.write(:ushort, 65_536))
+    assert {:error, {:wrong_type, :ushort, 65536123}} == catch_throw(Eflatbuffers.write(:ushort, 65_536_123))
     assert {:error, {:wrong_type, :ushort, -1}}    == catch_throw(Eflatbuffers.write(:ushort, -1))
   end
 
@@ -104,37 +104,38 @@ defmodule EflatbuffersTest do
     #    assert( non_padded == :erlang.iolist_to_binary(reply))
     #  end
 
-    #  test "table of scalars" do
-    #    table = %{
-    #      byte: :byte,
-    #      ubyte: :ubyte,
-    #      bool: :bool,
-    #      short: :short,
-    #      ushort: :ushort,
-    #      int: :int,
-    #      uint: :uint,
-    #      float: :float,
-    #      long: :long,
-    #      ulong: :ulong,
-    #      double: :double,
-    #    }
-    #    schema = { %{scalars: table}, %{root_type: :scalars} }
-    #    map = %{
-    #      byte: "x",
-    #      ubyte: :ubyte,
-    #      bool: :bool,
-    #      short: :short,
-    #      ushort: :ushort,
-    #      int: :int,
-    #      uint: :uint,
-    #      float: :float,
-    #      long: :long,
-    #      ulong: :ulong,
-    #      double: :double,
-    #    }
-    #    reply = Eflatbuffers.write_fb(schema, map)
-    #    assert_eq(:table_bool_string_string, map, reply)
-    #  end
+  test "table of scalars" do
+    table = {:table,
+      [
+        my_byte: :byte,
+        my_ubyte: :ubyte,
+        my_bool: :bool,
+        my_short: :short,
+        my_ushort: :ushort,
+        my_int: :int,
+        my_uint: :uint,
+        my_float: :float,
+        my_long: :long,
+        my_ulong: :ulong,
+        my_double: :double,
+      ]}
+    schema = { %{scalars: table}, %{root_type: :scalars} }
+    map = %{
+      my_byte: -3,
+      my_ubyte: 200,
+      my_bool: true,
+      my_short: -23,
+      my_ushort: 42,
+      my_int: -1000,
+      my_uint: 1000,
+      my_float: 3.124,
+      my_long: -10000000,
+      my_ulong: 10000000,
+      my_double: 3.141593,
+    }
+    reply = Eflatbuffers.write_fb(schema, map)
+    assert_eq(:all_my_scalars, map, reply)
+  end
 
   test "write fb" do
     map = %{my_bool: true, my_string: "max", my_second_string: "minimum"}
@@ -193,8 +194,6 @@ defmodule EflatbuffersTest do
 
   def assert_eq(schema, map, binary) do
     map_looped = reference_map(schema, :erlang.iolist_to_binary(binary))
-    IO.inspect map
-    IO.inspect map_looped
     assert( map == map_looped )
   end
 
@@ -208,8 +207,12 @@ defmodule EflatbuffersTest do
   end
 
   def reference_json(schema, data) when is_binary(data) do
+    IO.puts "trying to open port"
     port  = FlatbufferPort.open_port()
+    IO.puts "port open"
+    IO.puts "trying to load schema #{schema}"
     :true = FlatbufferPort.load_schema(port, load_schema(schema))
+    IO.puts "schema #{schema} loaded"
     :ok   = port_response(port)
     :true = FlatbufferPort.fb_to_json(port, data)
     port_response(port)

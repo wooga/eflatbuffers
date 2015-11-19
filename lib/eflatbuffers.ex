@@ -30,16 +30,40 @@ defmodule Eflatbuffers do
     << integer :: little-size(16) >>
   end
 
-  def write(:ushort, integer) when is_integer(integer) and integer >= 0 and integer < 65536 do
+  def write(:ushort, integer) when is_integer(integer) and integer >= 0 and integer <= 65536 do
     << integer :: little-size(16) >>
   end
 
+  def write(:int, integer) when is_integer(integer) and integer >= -2_147_483_648 and integer <= 2_147_483_647 do
+    << integer :: signed-little-size(32) >>
+  end
+
+  def write(:uint, integer) when is_integer(integer) and integer >= 0 and integer <= 4_294_967_295 do
+    << integer :: signed-little-size(32) >>
+  end
+
+  def write(:float, float) when (is_float(float) or is_integer(float)) and float >= -3.4E+38 and float <= +3.4E+38 do
+    << float :: float-little-size(32) >>
+  end
+
+  def write(:long, integer) when is_integer(integer) and integer >= -9_223_372_036_854_775_808 and integer <= 9_223_372_036_854_775_807 do
+    << integer :: signed-little-size(64) >>
+  end
+
+  def write(:ulong, integer) when is_integer(integer) and integer >= 0 and integer <= 18_446_744_073_709_551_615 do
+    << integer :: unsigned-little-size(64) >>
+  end
+
+  def write(:double, float) when (is_float(float) or is_integer(float)) and float >= -1.7E+308 and float <= +1.7E+308 do
+    << float :: float-little-size(64) >>
+  end
+
   def write(:string, string) when is_binary(string) do
-    << byte_size(string) :: little-size(32) >> <> string
+    << byte_size(string) :: little-little-size(32) >> <> string
   end
 
   def write({:vector, type}, list) when is_list(list) do
-    [ << length(list) :: little-size(32) >>, Enum.map(list, fn(e) -> write(type, e) end)]
+    [ << length(list) :: little-little-size(32) >>, Enum.map(list, fn(e) -> write(type, e) end)]
   end
 
 

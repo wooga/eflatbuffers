@@ -1,16 +1,16 @@
 table scalars
 {
- byte:byte;
- ubyte:ubyte;
- bool:bool;
- short:short;
- ushort:ushort;
- int:int;
- uint:uint;
- float:float;
- long:long;
- ulong:ulong;
- double:double;
+  my_byte:byte;
+  my_ubyte:ubyte;
+  my_bool:bool;
+  my_short:short;
+  my_ushort:ushort;
+  my_int:int;
+  my_uint:uint;
+  my_float:float;
+  my_long:long;
+  my_ulong:ulong;
+  my_double:double;
 }
 root_type scalars;
 
