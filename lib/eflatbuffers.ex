@@ -134,6 +134,23 @@ defmodule Eflatbuffers do
     [ << length(list) :: little-little-size(32) >>, Enum.map(list, fn(e) -> write(type, e, schema) end)]
   end
 
+  def read({:vector, type}, vtable_pointer, data, schema) do
+    << vector_offset :: unsigned-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
+    vector_pointer = vtable_pointer + vector_offset
+    << _ :: binary-size(vector_pointer), vector_count :: unsigned-little-size(32), _ :: binary >> = data
+    read_vector_elements(type, vector_pointer + 4, vector_count, data, schema)
+  end
+
+  def read_vector_elements(_, _, 0, _, _) do
+    []
+  end
+
+  def read_vector_elements(type, vector_pointer, vector_count, data, schema) do
+    value  = read(type, vector_pointer, data, schema)
+    offset = type_size(type)
+    [value | read_vector_elements(type, vector_pointer + offset, vector_count - 1, data, schema)]
+  end
+
   def read_from_data_buffer(data_pointer, data, data_size) do
     << _ :: binary-size(data_pointer), value :: bitstring-size(data_size), _ :: binary >> = data
     value
@@ -278,5 +295,22 @@ defmodule Eflatbuffers do
   def scalar?({:vector, _}), do: false
   def scalar?({:table,  _}), do: false
   def scalar?(_),            do: true
+
+  def type_size(:byte ), do: 1
+  def type_size(:ubyte), do: 1
+  def type_size(:bool ), do: 1
+
+  def type_size(:short ), do: 2
+  def type_size(:ushort), do: 2
+
+  def type_size(:int  ), do: 4
+  def type_size(:uint ), do: 4
+  def type_size(:float), do: 4
+
+  def type_size(:long  ), do: 8
+  def type_size(:ulong ), do: 8
+  def type_size(:double), do: 8
+
+  def type_size(type), do: throw({:error, {:unknown_type, type}})
 
 end

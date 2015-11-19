@@ -1,0 +1,8 @@
+table int_vector_table
+{
+  int_vector:[int];
+}
+root_type int_vector_table;
+
+
+

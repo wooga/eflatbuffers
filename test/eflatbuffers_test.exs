@@ -133,6 +133,22 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
+  test "table with scalar vector" do
+    table = {:table,
+      [
+        int_vector: {:vector, :int},
+      ]}
+    schema = { %{table_a: table}, %{root_type: :table_a} }
+    map = %{
+      int_vector: [23, 42, 666],
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert_eq(:int_vector, map, reply)
+    # reading
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
+
   test "fb with string" do
     table = {:table,
       [
@@ -151,19 +167,6 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
 
   end
-
-  #table outer
-  #{
-  #  value_outer:short;
-  #  inner:inner;
-  #}
-  #table inner
-  #{
-  #  value_inner:short;
-  #}
-  #root_type outer;
-
-
 
   test "read nested table" do
     outer = {:table,
