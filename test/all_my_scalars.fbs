@@ -1,0 +1,16 @@
+table scalars
+{
+ byte:byte;
+ ubyte:ubyte;
+ bool:bool;
+ short:short;
+ ushort:ushort;
+ int:int;
+ uint:uint;
+ float:float;
+ long:long;
+ ulong:ulong;
+ double:double;
+}
+root_type scalars;
+

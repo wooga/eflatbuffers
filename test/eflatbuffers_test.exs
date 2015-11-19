@@ -14,12 +14,13 @@ defmodule EflatbuffersTest do
   ### 8 bit types
 
   test "write bytes" do
-    assert << 1 >> == Eflatbuffers.write(:byte, << 1 >>)
-    assert {:error, {:wrong_type, :byte, 123}} == catch_throw(Eflatbuffers.write(:byte, 123))
+    assert << 255 >> == Eflatbuffers.write(:byte, -1)
+    assert {:error, {:wrong_type, :byte, 1000}} == catch_throw(Eflatbuffers.write(:byte, 1000))
+    assert {:error, {:wrong_type, :byte, "x"}}  == catch_throw(Eflatbuffers.write(:byte, "x"))
   end
 
   test "write ubytes" do
-    assert << 42 >> == Eflatbuffers.write(:ubyte, << 42 >>)
+    assert << 42 >> == Eflatbuffers.write(:ubyte, 42)
   end
 
   test "write bools" do
@@ -101,6 +102,38 @@ defmodule EflatbuffersTest do
     #      map
     #    )
     #    assert( non_padded == :erlang.iolist_to_binary(reply))
+    #  end
+
+    #  test "table of scalars" do
+    #    table = %{
+    #      byte: :byte,
+    #      ubyte: :ubyte,
+    #      bool: :bool,
+    #      short: :short,
+    #      ushort: :ushort,
+    #      int: :int,
+    #      uint: :uint,
+    #      float: :float,
+    #      long: :long,
+    #      ulong: :ulong,
+    #      double: :double,
+    #    }
+    #    schema = { %{scalars: table}, %{root_type: :scalars} }
+    #    map = %{
+    #      byte: "x",
+    #      ubyte: :ubyte,
+    #      bool: :bool,
+    #      short: :short,
+    #      ushort: :ushort,
+    #      int: :int,
+    #      uint: :uint,
+    #      float: :float,
+    #      long: :long,
+    #      ulong: :ulong,
+    #      double: :double,
+    #    }
+    #    reply = Eflatbuffers.write_fb(schema, map)
+    #    assert_eq(:table_bool_string_string, map, reply)
     #  end
 
   test "write fb" do

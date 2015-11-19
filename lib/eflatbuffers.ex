@@ -18,12 +18,12 @@ defmodule Eflatbuffers do
     <<>>
   end
 
-  def write(:byte, byte) when is_binary(byte) and (byte_size(byte) == 1) do
-    byte
+  def write(:byte, byte) when is_integer(byte) and byte >= -128 and byte <= 127 do
+    << byte :: signed-size(8) >>
   end
 
-  def write(:ubyte, byte) when is_binary(byte) and (byte_size(byte) == 1) do
-    byte
+  def write(:ubyte, byte) when is_integer(byte) and byte >= 0 and byte <= 255 do
+    << byte :: unsigned-size(8) >>
   end
 
   def write(:short, integer) when is_integer(integer) and integer <= 32_767 and integer >= -32_768 do
