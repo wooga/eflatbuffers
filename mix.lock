@@ -1,0 +1,3 @@
+%{"flatbuffer_port": {:git, "git:elixir-flatbuffers", "2d3c85abb37487f981470310a030c23747201e55", [branch: "master"]},
+  "flatbuffers": {:git, "https://github.com/reimerei/flatbuffers.git", "c72dcef7c5124900bc8ad88bde220b8577cc2018", [branch: "no_spaces"]},
+  "poison": {:hex, :poison, "1.5.0"}}

@@ -1,0 +1,11 @@
+_build
+/deps
+/rel
+erl_crash.dump
+*.ez
+/tags
+*.analysis
+*.cgrind
+*.trace
+*.tags
+*.tags_sorted_by_file

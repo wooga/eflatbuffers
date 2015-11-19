@@ -1,0 +1,8 @@
+table table_a
+{
+  my_bool:bool;
+  my_string:string;
+  my_second_string:string;
+  my_omitted_bool:bool;
+}
+root_type table_a;
