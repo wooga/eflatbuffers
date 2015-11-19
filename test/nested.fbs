@@ -1,0 +1,11 @@
+table outer
+{
+  value_outer:short;
+  inner:inner;
+}
+table inner
+{
+  value_inner:short;
+}
+root_type outer;
+

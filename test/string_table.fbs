@@ -1,0 +1,8 @@
+table string_table
+{
+  my_string:string;
+  my_bool:bool;
+}
+root_type string_table;
+
+
