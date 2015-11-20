@@ -9,3 +9,9 @@ file_extension "baa";
   
 root_type Monster;  
 
+table Monster {
+  pos : Other;
+  name: string;
+  test: any;
+  inventory:[ubyte];
+}

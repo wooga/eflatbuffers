@@ -1,31 +1,39 @@
-Nonterminals definition definitions fields.
-Terminals  table struct enum union namespace root_type include attribute file_identifier file_extension float int string newline whitespace '}' '{' '(' '(' '[' ']' ';' ',' ':' '=' quote.
-Rootsymbol definitions.
+Nonterminals root definition option fields field.
+Terminals  table struct enum union namespace root_type include attribute file_identifier file_extension float int string newline '}' '{' '(' '(' '[' ']' ';' ',' ':' '=' quote.
+Rootsymbol root.
 
-definitions -> definition : '$1'.
-definitions -> definitions definition : maps:merge('$1', '$2').
+root -> definition : {'$1', #{}}.
+root -> option     : {#{}, '$1'}.
+root -> root definition : add_def('$1', '$2').
+root -> root option     : add_opt('$1', '$2').
 
-% non quoted definitions
-definition -> namespace whitespace string ';'       : #{get_name('$1') => get_value('$3')}.
-definition -> root_type whitespace string ';'       : #{get_name('$1') => get_value('$3')}.
+% options (non-quoted)
+option -> namespace string ';' : #{get_name('$1') => get_value('$2')}.
+option -> root_type string ';' : #{get_name('$1') => get_value('$2')}.
 
-% quoted defintions
-definition -> include whitespace quote string quote ';'         : #{get_name('$1') => get_value('$4')}.
-definition -> attribute whitespace quote string quote ';'       : #{get_name('$1') => get_value('$4')}.
-definition -> file_identifier whitespace quote string quote ';' : #{get_name('$1') => get_value('$4')}.
-definition -> file_extension whitespace quote string quote ';'  : #{get_name('$1') => get_value('$4')}.
+% options (quoted)
+option -> include quote string quote ';'         : #{get_name('$1') => get_value('$3')}.
+option -> attribute quote string quote ';'       : #{get_name('$1') => get_value('$3')}.
+option -> file_identifier quote string quote ';' : #{get_name('$1') => get_value('$3')}.
+option -> file_extension quote string quote ';'  : #{get_name('$1') => get_value('$3')}.
 
-% definitions with field blocks
-% definition -> table whitespace string whitespace
+% definitions
+definition -> table string '{' fields '}'  : #{get_value('$2') => {table, '$4'} }.
 
+fields -> field ';' : [ '$1' ].
+fields -> field ';' fields : [ '$1' | '$3' ].
 
-
+field -> string ':' string          : { get_value('$1'), get_value('$3') }.
+field -> string ':' '[' string ']'  : { get_value('$1'), {vector, get_value('$4')}}.
 
 Erlang code.
 
-get_value({_Token, _Line, Value}) -> list_to_binary(Value).
+get_value({_Token, _Line, Value}) -> list_to_atom(Value).
 
-get_name({Token, _Line, _Value})  -> atom_to_binary(Token, utf8);
-get_name({Token, _Line})          -> atom_to_binary(Token, utf8).
+get_name({Token, _Line, _Value})  -> Token;
+get_name({Token, _Line})          -> Token.
+
+add_def({Defs, Opts}, Def) -> {maps:merge(Defs, Def), Opts}.
+add_opt({Defs, Opts}, Opt) -> {Defs, maps:merge(Opts, Opt)}.
 
 
