@@ -4,7 +4,7 @@ defmodule Eflatbuffers.Mixfile do
   def project do
     [app: :eflatbuffers,
      version: "0.0.1",
-     elixir: "~> 1.2-dev",
+     elixir: "~> 1.1.1",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps]
@@ -28,7 +28,7 @@ defmodule Eflatbuffers.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:flatbuffer_port, git: "git:elixir-flatbuffers", branch: "master", override: true}
+      {:flatbuffer_port, git: "git:elixir-flatbuffers", branch: "master", override: true},
     ]
   end
 end

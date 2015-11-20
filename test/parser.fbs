@@ -1,0 +1,32 @@
+namespace SyGame;
+
+attribute "priority";
+
+file_identifier "FOOO";
+
+file_extension "baa";
+
+root_type Monster;
+
+enum Color : byte { Red = 1, Green, Blue }
+
+union Any { Monster, Weapon, Pickup }
+
+struct Vec3 {
+  x:float = 1.232;
+  y:float = -1.232;
+  z:float = 1.123e-123;
+  z:float = 1.123E-123;;
+}
+
+table Monster {
+  pos:Vec3;
+  mana:short = 150;
+  hp:short   = 100;
+  neg:int    = -150;
+  name:string;
+  friendly:bool = false (deprecated, priority: 1);
+  inventory:[ubyte];
+  color:Color = Blue;
+  test:Any;
+}

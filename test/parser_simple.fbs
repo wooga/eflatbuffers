@@ -1,0 +1,11 @@
+namespace SyGame;
+
+include "some_other";
+
+attribute "priority";
+
+file_identifier "FOOO";
+
+file_extension "baa";
+
+root_type Monster;

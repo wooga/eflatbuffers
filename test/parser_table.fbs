@@ -1,0 +1,11 @@
+table Monster {
+  pos:Vec3;
+  mana:short = 150;
+  hp:short   = 100;
+  neg:int    = -150;
+  name:string;
+  friendly:bool = false (deprecated, priority: 1);
+  inventory:[ubyte];
+  color:Color = Blue;
+  test:Any;
+}
