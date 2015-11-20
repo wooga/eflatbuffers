@@ -132,33 +132,42 @@ defmodule Eflatbuffers do
     string
   end
 
-  def write({:vector, type}, list, schema) when is_list(list) do
-    [ << length(list) :: little-little-size(32) >>, Enum.map(list, fn(e) -> write(type, e, schema) end)]
+  def write({:vector, type}, values, schema) when is_list(values) do
+    vector_length = length(values)
+    types = Enum.map(1..vector_length, fn(_) -> type end)
+    [ << vector_length :: little-little-size(32) >>, data_buffer_and_data(types, values, schema) ]
   end
 
   def read({:vector, type}, vtable_pointer, data, schema) do
     << vector_offset :: unsigned-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
     vector_pointer = vtable_pointer + vector_offset
     << _ :: binary-size(vector_pointer), vector_count :: unsigned-little-size(32), _ :: binary >> = data
-    read_vector_elements(type, vector_pointer + 4, vector_count, data, schema)
+    is_scalar = scalar?(type)
+    read_vector_elements(type, is_scalar, vector_pointer + 4, vector_count, data, schema)
   end
 
-  def read_vector_elements(_, _, 0, _, _) do
+  def read_vector_elements(_, _, _, 0, _, _) do
     []
   end
 
-  def read_vector_elements(type, vector_pointer, vector_count, data, schema) do
+  def read_vector_elements(type, true, vector_pointer, vector_count, data, schema) do
     value  = read(type, vector_pointer, data, schema)
-    offset = type_size(type)
-    [value | read_vector_elements(type, vector_pointer + offset, vector_count - 1, data, schema)]
+    offset = scalar_size(type)
+    [value | read_vector_elements(type, true, vector_pointer + offset, vector_count - 1, data, schema)]
+  end
+
+  def read_vector_elements(type, false, vector_pointer, vector_count, data, schema) do
+    value  = read(type, vector_pointer, data, schema)
+    offset = 4
+    [value | read_vector_elements(type, false, vector_pointer + offset, vector_count - 1, data, schema)]
   end
 
 
   # write a complete table
   def write({:table, table_name}, map, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
     {:table, fields}    = Map.get(tables, table_name)
-    values              = Enum.map(fields, fn({name, _type}) -> Map.get(map, name) end)
-    [data_buffer, data] = data_buffer_and_data(fields, values, schema)
+    {types, values}     = Enum.reduce(Enum.reverse(fields), {[], []}, fn({name, type}, {type_acc, value_acc}) -> {[type | type_acc], [Map.get(map, name) | value_acc]} end)
+    [data_buffer, data] = data_buffer_and_data(types, values, schema)
     vtable              = vtable(data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
     data_buffer_length  = << :erlang.iolist_size([springboard, data_buffer]) :: little-size(16) >>
@@ -215,18 +224,18 @@ defmodule Eflatbuffers do
 
   # build up [data_buffer, data]
   # as part of a table or vector
-  def data_buffer_and_data(fields, values, schema) do
-    data_buffer_and_data(fields, values, schema, {[], [], 0})
+  def data_buffer_and_data(types, values, schema) do
+    data_buffer_and_data(types, values, schema, {[], [], 0})
   end
-  def data_buffer_and_data([], _, _schema, {data_buffer, data, _}) do
+  def data_buffer_and_data([], [], _schema, {data_buffer, data, _}) do
     [adjust_for_length(data_buffer), Enum.reverse(data)]
   end
 
-  def data_buffer_and_data([{_name, type} | fields], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
+  def data_buffer_and_data([type | types], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
     case scalar?(type) do
       true ->
         scalar_data = write(type, value, schema)
-        data_buffer_and_data(fields, values, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
+        data_buffer_and_data(types, values, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
       false ->
         complex_data = write(type, value, schema)
         complex_data_length = :erlang.iolist_size(complex_data)
@@ -234,17 +243,20 @@ defmodule Eflatbuffers do
         data_pointer =
         case type do
           {:table, _} ->
-            [e1, e2, e3 | _] = complex_data
-            data_offset + :erlang.iolist_size([e1, e2, e3])
+            [vtable_length, data_buffer_length, vtable | _] = complex_data
+            table_header_offset = :erlang.iolist_size([vtable_length, data_buffer_length, vtable])
+            data_offset + table_header_offset
           _ ->
             data_offset
         end
-        data_buffer_and_data(fields, values, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
+        data_buffer_and_data(types, values, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end
 
   # so this is a mix of scalars (binary)
   # and unadjusted pointers (integers)
+  # we adjust the pointers to account
+  # for their poisition in the buffer
   def adjust_for_length(data_buffer) do
     adjust_for_length(data_buffer, {[], 0})
   end
@@ -304,21 +316,21 @@ defmodule Eflatbuffers do
   def scalar?({:table,  _}), do: false
   def scalar?(_),            do: true
 
-  def type_size(:byte ), do: 1
-  def type_size(:ubyte), do: 1
-  def type_size(:bool ), do: 1
+  def scalar_size(:byte ), do: 1
+  def scalar_size(:ubyte), do: 1
+  def scalar_size(:bool ), do: 1
 
-  def type_size(:short ), do: 2
-  def type_size(:ushort), do: 2
+  def scalar_size(:short ), do: 2
+  def scalar_size(:ushort), do: 2
 
-  def type_size(:int  ), do: 4
-  def type_size(:uint ), do: 4
-  def type_size(:float), do: 4
+  def scalar_size(:int  ), do: 4
+  def scalar_size(:uint ), do: 4
+  def scalar_size(:float), do: 4
 
-  def type_size(:long  ), do: 8
-  def type_size(:ulong ), do: 8
-  def type_size(:double), do: 8
+  def scalar_size(:long  ), do: 8
+  def scalar_size(:ulong ), do: 8
+  def scalar_size(:double), do: 8
 
-  def type_size(type), do: throw({:error, {:unknown_type, type}})
+  def scalar_size(type), do: throw({:error, {:unknown_scalar, type}})
 
 end

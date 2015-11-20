@@ -58,9 +58,9 @@ defmodule EflatbuffersTest do
   end
 
   test "write vectors" do
-    assert [<<3, 0, 0, 0>>, [<<1>>, <<1>>, <<0>>]] == Eflatbuffers.write({:vector, :bool}, [true, true, false], '_')
+    assert [<<3, 0, 0, 0>>, [[<<1>>, <<1>>, <<0>>], []], ] == Eflatbuffers.write({:vector, :bool}, [true, true, false], '_')
     assert(
-      [<< 2, 0, 0, 0 >>, [<< 3, 0, 0, 0 >> <> "foo", << 3, 0, 0, 0 >> <> "bar"]] ==
+      [<<2, 0, 0, 0>>, [[<<8, 0, 0, 0>>, <<11, 0, 0, 0>>], [<<3, 0, 0, 0, 102, 111, 111>>, <<3, 0, 0, 0, 98, 97, 114>>]]] ==
       Eflatbuffers.write({:vector, :string}, ["foo", "bar"], '_')
     )
   end
@@ -71,7 +71,7 @@ defmodule EflatbuffersTest do
       [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
     ]
     reply = Eflatbuffers.data_buffer_and_data(
-      [{:my_bool, :bool}, {:my_string, :string}, {:my_second_string, :string}, {:my_omitted_bool, :bool}],
+      [:bool, :string, :string, :bool],
       [true, "max", "minimum", nil],
       '_'
     )
@@ -148,36 +148,25 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
-  #table outer
-  #{
-  #  inner:[inner];
-  #}
-  #table inner
-  #{
-  #  value_inner:short;
-  #}
-  #root_type outer;
-
-
-  #  test "table with table vector" do
-  #    outer_table = {:table,
-  #      [
-  #        inner: {:vector, {:table, :inner}},
-  #      ]}
-  #    inner_table = {:table,
-  #      [
-  #        value_inner: :short,
-  #      ]}
-  #    schema = { %{outer: outer_table, inner: inner_table}, %{root_type: :outer} }
-  #    map = %{
-  #      inner: [%{value_inner: 1}, %{value_inner: 2}, %{value_inner: 3}],
-  #    }
-  #    # writing
-  #    reply = Eflatbuffers.write_fb(map, schema)
-  #    assert_eq(:table_vector, map, reply)
-  #    # reading
-  #    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
-  #  end
+  test "table with table vector" do
+    outer_table = {:table,
+      [
+        inner: {:vector, {:table, :inner}},
+      ]}
+    inner_table = {:table,
+      [
+        value_inner: :short,
+      ]}
+    schema = { %{outer: outer_table, inner: inner_table}, %{root_type: :outer} }
+    map = %{
+      inner: [%{value_inner: 1}, %{value_inner: 2}, %{value_inner: 3}],
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert_eq(:table_vector, map, reply)
+    # reading
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
 
 
   test "fb with string" do
