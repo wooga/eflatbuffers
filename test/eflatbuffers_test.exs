@@ -168,6 +168,19 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
+  test "nested vectors (not supported by flatc)" do
+    table = {:table,
+      [
+        the_vector: {:vector, {:vector, :int}},
+      ]}
+    schema = { %{root_table: table}, %{root_type: :root_table} }
+    map = %{
+      the_vector: [[1,2,3],[4,5,6]],
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
 
   test "fb with string" do
     table = {:table,
