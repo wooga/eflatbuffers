@@ -73,8 +73,8 @@ defmodule EflatbuffersTest do
     ]
     reply = Eflatbuffers.data_buffer_and_data(
       [{:my_bool, :bool}, {:my_string, :string}, {:my_second_string, :string}, {:my_omitted_bool, :bool}],
-      map,
-      {[], [], 0}
+      [true, "max", "minimum", nil],
+      '_'
     )
     assert( intermediate == reply)
   end
@@ -148,6 +148,38 @@ defmodule EflatbuffersTest do
     # reading
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
+
+  #table outer
+  #{
+  #  inner:[inner];
+  #}
+  #table inner
+  #{
+  #  value_inner:short;
+  #}
+  #root_type outer;
+
+
+  #  test "table with table vector" do
+  #    outer_table = {:table,
+  #      [
+  #        inner: {:vector, {:table, :inner}},
+  #      ]}
+  #    inner_table = {:table,
+  #      [
+  #        value_inner: :short,
+  #      ]}
+  #    schema = { %{outer: outer_table, inner: inner_table}, %{root_type: :outer} }
+  #    map = %{
+  #      inner: [%{value_inner: 1}, %{value_inner: 2}, %{value_inner: 3}],
+  #    }
+  #    # writing
+  #    reply = Eflatbuffers.write_fb(map, schema)
+  #    assert_eq(:table_vector, map, reply)
+  #    # reading
+  #    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  #  end
+
 
   test "fb with string" do
     table = {:table,

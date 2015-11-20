@@ -119,6 +119,8 @@ defmodule Eflatbuffers do
     value
   end
 
+  # complex types
+
   def write(:string, string, _) when is_binary(string) do
     << byte_size(string) :: unsigned-little-size(32) >> <> string
   end
@@ -151,15 +153,12 @@ defmodule Eflatbuffers do
     [value | read_vector_elements(type, vector_pointer + offset, vector_count - 1, data, schema)]
   end
 
-  def read_from_data_buffer(data_pointer, data, data_size) do
-    << _ :: binary-size(data_pointer), value :: bitstring-size(data_size), _ :: binary >> = data
-    value
-  end
 
-
+  # write a complete table
   def write({:table, table_name}, map, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
-    {:table, fields} = Map.get(tables, table_name)
-    [intermediate_data_buffer, data] = data_buffer_and_data(fields, map, schema)
+    {:table, fields}    = Map.get(tables, table_name)
+    values              = Enum.map(fields, fn({name, _type}) -> Map.get(map, name) end)
+    [intermediate_data_buffer, data] = data_buffer_and_data(fields, values, schema)
     vtable              = vtable(fields, intermediate_data_buffer)
     data_buffer         = flatten_intermediate_data_buffer(intermediate_data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
@@ -168,6 +167,7 @@ defmodule Eflatbuffers do
     [vtable_length, data_buffer_length, vtable, springboard, data_buffer, data]
   end
 
+  # read a complete table, given a pointer to the springboard
   def read({:table, table_name}, table_pointer_pointer, data, {tables, _options} = schema) when is_atom(table_name) do
     << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(16), _ :: binary >> = data
     table_pointer = table_pointer_pointer + table_offset
@@ -177,49 +177,59 @@ defmodule Eflatbuffers do
     << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _data_buffer_length :: little-size(16), _ :: binary >> = data
     vtable_fields_pointer = vtable_pointer + 4
     vtable_fields_length  = vtable_length  - 4
-    << _ :: binary-size(vtable_fields_pointer), rest :: binary >> = data
+    << _ :: binary-size(vtable_fields_pointer), _ :: binary >> = data
     << _ :: binary-size(vtable_fields_pointer), vtable :: binary-size(vtable_fields_length), _ :: binary >> = data
     data_buffer_pointer = table_pointer
-    read_fields(fields, vtable, data_buffer_pointer, data, schema)
+    read_table_fields(fields, vtable, data_buffer_pointer, data, schema)
   end
 
-  def read(type, _, _, _) do
-    throw({:error, {:unknown_type, type}})
+  def read_table_fields(fields, vtable, data_buffer_pointer, data, schema) do
+    read_table_fields(fields, vtable, data_buffer_pointer, data, schema, %{})
   end
 
-  def read_fields(fields, vtable, data_buffer_pointer, data, schema) do
-    read_fields(fields, vtable, data_buffer_pointer, data, schema, %{})
-  end
-
-  def read_fields([], _, _, _, _, map) do
+  def read_table_fields([], _, _, _, _, map) do
     map
   end
 
-  def read_fields([{name, type} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, schema, map) do
+  def read_table_fields([{name, type} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, schema, map) do
     data_pointer = data_buffer_pointer + data_offset
     value = read(type, data_pointer, data, schema)
     map_new = Map.put(map, name, value)
-    read_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
+    read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
   end
 
+  # fail of nothing matches
   def write(type, data, _) do
     throw({:error, {:wrong_type, type, data}})
   end
 
-  def data_buffer_and_data(fields, map, schema) do
-    data_buffer_and_data(fields, map, schema, {[], [], 0})
+  # fail of nothing matches
+  def read(type, _, _, _) do
+    throw({:error, {:unknown_type, type}})
+  end
+
+  # this is a utility that just reads data_size bytes from data after data_pointer
+  def read_from_data_buffer(data_pointer, data, data_size) do
+    << _ :: binary-size(data_pointer), value :: bitstring-size(data_size), _ :: binary >> = data
+    value
+  end
+
+  # build up [data_buffer, data]
+  # as part of a table or vector
+  def data_buffer_and_data(fields, values, schema) do
+    data_buffer_and_data(fields, values, schema, {[], [], 0})
   end
   def data_buffer_and_data([], _, schema, {data_buffer, data, _}) do
     [adjust_for_length(data_buffer), Enum.reverse(data)]
   end
 
-  def data_buffer_and_data([{name, type} | fields], map, schema, {scalar_and_pointers, data, data_offset}) do
+  def data_buffer_and_data([{name, type} | fields], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
     case scalar?(type) do
       true ->
-        scalar_data = write(type, Map.get(map, name), schema)
-        data_buffer_and_data(fields, map, schema, {[{name, scalar_data} | scalar_and_pointers], data, data_offset})
+        scalar_data = write(type, value, schema)
+        data_buffer_and_data(fields, values, schema, {[{name, scalar_data} | scalar_and_pointers], data, data_offset})
       false ->
-        complex_data = write(type, Map.get(map, name), schema)
+        complex_data = write(type, value, schema)
         complex_data_length = :erlang.iolist_size(complex_data)
         # for a table we do not point to the start but to the springboard
         data_pointer =
@@ -230,7 +240,7 @@ defmodule Eflatbuffers do
           _ ->
             data_offset
         end
-        data_buffer_and_data(fields, map, schema, {[{name, data_pointer} | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
+        data_buffer_and_data(fields, values, schema, {[{name, data_pointer} | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end
 
