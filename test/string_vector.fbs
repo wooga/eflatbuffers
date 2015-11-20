@@ -1,0 +1,9 @@
+table string_vector_table
+{
+  string_vector:[string];
+}
+root_type string_vector_table;
+
+
+
+

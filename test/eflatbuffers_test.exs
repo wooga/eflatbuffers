@@ -148,6 +148,23 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
+  test "table with string vector" do
+    table = {:table,
+      [
+        string_vector: {:vector, :string},
+      ]}
+    schema = { %{string_vector_table: table},  %{root_type: :string_vector_table} }
+    map = %{
+      string_vector: ["foo", "bar", "baz"],
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert_eq(:string_vector, map, reply)
+    # reading
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
+
+
   test "table with table vector" do
     outer_table = {:table,
       [
