@@ -2,7 +2,7 @@ Definitions.
 
 FLOAT           = -?[0-9]+\.?[0-9]+([eE][-+]?[0-9]+)?
 INT             = -?[0-9]+
-STRING          = [a-zA-Z0-9_]+
+STRING          = [a-zA-Z0-9_\.]+
 WS              = [\s\t]+
 NL              = [\n\r]+
 
