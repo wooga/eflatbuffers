@@ -20,13 +20,14 @@ struct Vec3 {
 }
 
 table Monster {
-  pos:Vec3;
-  mana:short = 150;
-  hp:short   = 100;
-  neg:int    = -150;
-  name:string;
-  friendly:bool = false (deprecated, priority: 1);
-  inventory:[ubyte];
-  color:Color = Blue;
-  test:Any;
+  name      :string;
+  pos       :Vec3;
+  inventory :[ubyte];
+  mana      :int     = 150;
+  hp        :foo     = -100;
+  fl        :float   = 1.50;
+  fl2       :float   = -1.5123e3;
+  waa       :bool    = true;
+  frie      :ool     (deprecated, priority: 1, other: foo);
+  friendly  :bool    = false (deprecated, priority: 1);
 }

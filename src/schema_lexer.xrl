@@ -1,8 +1,9 @@
 Definitions.
 
-FLOAT           = -?[0-9]+\.?[0-9]+([eE][-+]?[0-9]+)?
+FLOAT           = -?[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?
 INT             = -?[0-9]+
 STRING          = [a-zA-Z0-9_\.]+
+BOOL            = (true|false)
 WS              = [\s\t]+
 NL              = [\n\r]+
 
@@ -19,8 +20,9 @@ attribute{WS}			  : {token, {attribute, TokenLine}}.
 file_identifier{WS}	: {token, {file_identifier, TokenLine}}.
 file_extension{WS}  : {token, {file_extension, TokenLine}}.
 
-{FLOAT}         : {token, {float, TokenLine, TokenChars}}.
-{INT}           : {token, {int, TokenLine, TokenChars}}.
+{FLOAT}         : {Val, _} = string:to_float(TokenChars), {token, {float, TokenLine, Val}}.
+{INT}           : {Val, _} = string:to_integer(TokenChars), {token, {int, TokenLine, Val}}.
+{BOOL}          : {token, {int, TokenLine, get_bool(TokenChars)}}.
 {STRING}        : {token, {string, TokenLine, TokenChars}}.
 {WS}            : skip_token.
 {NL}            : skip_token.
@@ -39,3 +41,5 @@ file_extension{WS}  : {token, {file_extension, TokenLine}}.
 
 Erlang code.
 
+get_bool("true") -> true;
+get_bool("false") -> false.

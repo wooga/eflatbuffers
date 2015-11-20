@@ -1,5 +1,5 @@
 namespace SyGame ;     
-include "some_other";   
+include "some_other.fbs";   
 
 attribute "priority"  ;
 
