@@ -158,9 +158,8 @@ defmodule Eflatbuffers do
   def write({:table, table_name}, map, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
     {:table, fields}    = Map.get(tables, table_name)
     values              = Enum.map(fields, fn({name, _type}) -> Map.get(map, name) end)
-    [intermediate_data_buffer, data] = data_buffer_and_data(fields, values, schema)
-    vtable              = vtable(fields, intermediate_data_buffer)
-    data_buffer         = flatten_intermediate_data_buffer(intermediate_data_buffer)
+    [data_buffer, data] = data_buffer_and_data(fields, values, schema)
+    vtable              = vtable(data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
     data_buffer_length  = << :erlang.iolist_size([springboard, data_buffer]) :: little-size(16) >>
     vtable_length       = << :erlang.iolist_size([vtable, springboard])      :: little-size(16) >>
@@ -219,15 +218,15 @@ defmodule Eflatbuffers do
   def data_buffer_and_data(fields, values, schema) do
     data_buffer_and_data(fields, values, schema, {[], [], 0})
   end
-  def data_buffer_and_data([], _, schema, {data_buffer, data, _}) do
+  def data_buffer_and_data([], _, _schema, {data_buffer, data, _}) do
     [adjust_for_length(data_buffer), Enum.reverse(data)]
   end
 
-  def data_buffer_and_data([{name, type} | fields], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
+  def data_buffer_and_data([{_name, type} | fields], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
     case scalar?(type) do
       true ->
         scalar_data = write(type, value, schema)
-        data_buffer_and_data(fields, values, schema, {[{name, scalar_data} | scalar_and_pointers], data, data_offset})
+        data_buffer_and_data(fields, values, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
       false ->
         complex_data = write(type, value, schema)
         complex_data_length = :erlang.iolist_size(complex_data)
@@ -240,7 +239,7 @@ defmodule Eflatbuffers do
           _ ->
             data_offset
         end
-        data_buffer_and_data(fields, values, schema, {[{name, data_pointer} | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
+        data_buffer_and_data(fields, values, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end
 
@@ -255,39 +254,38 @@ defmodule Eflatbuffers do
   end
 
   # this is a scalar, we just pass the data
-  def adjust_for_length([{name, scalar} | data_buffer], {acc, offset}) when is_binary(scalar) do
-    adjust_for_length(data_buffer, {[{name, scalar} | acc], offset + byte_size(scalar)})
+  def adjust_for_length([scalar | data_buffer], {acc, offset}) when is_binary(scalar) do
+    adjust_for_length(data_buffer, {[scalar | acc], offset + byte_size(scalar)})
   end
 
   # referenced data, we get it and recurse
-  def adjust_for_length([{name, pointer} | data_buffer], {acc, offset}) when is_integer(pointer) do
+  def adjust_for_length([pointer | data_buffer], {acc, offset}) when is_integer(pointer) do
     offset_new = offset + 4
     pointer_bin = << (pointer + offset_new) :: little-size(32) >>
-    adjust_for_length(data_buffer, {[{name, pointer_bin} | acc], offset_new})
+    adjust_for_length(data_buffer, {[pointer_bin | acc], offset_new})
   end
 
   # we get a nested structure so we pass it untouched
-  def adjust_for_length([{name, iolist} | data_buffer], {acc, offset}) when is_list(iolist) do
-    adjust_for_length(data_buffer, {[{name, iolist} | acc], offset + 4})
+  def adjust_for_length([iolist | data_buffer], {acc, offset}) when is_list(iolist) do
+    adjust_for_length(data_buffer, {[iolist | acc], offset + 4})
   end
 
 
-  def vtable(fields, data_buffer) do
-    Enum.reverse(vtable(fields, data_buffer, {[], 4}))
+  def vtable(data_buffer) do
+    Enum.reverse(vtable(data_buffer, {[], 4}))
   end
 
-  def vtable([], [], {acc, _offset}) do
+  def vtable([], {acc, _offset}) do
     acc
   end
-  def vtable([{name_field, _type} | fields], [{name_data, data} | data_buffer], {acc, offset}) do
-    name_field = name_data
+  def vtable([data | data_buffer], {acc, offset}) do
     case data do
       "" ->
         # this is an undefined value, we put a null pointer
         # and leave the offset untouched
-        vtable(fields, data_buffer, {[<< 0 :: little-size(16) >> | acc ], offset })
+        vtable(data_buffer, {[<< 0 :: little-size(16) >> | acc ], offset })
       scalar_or_pointer ->
-        vtable(fields, data_buffer, {[<< offset :: little-size(16) >> | acc ], offset + byte_size(scalar_or_pointer) })
+        vtable(data_buffer, {[<< offset :: little-size(16) >> | acc ], offset + byte_size(scalar_or_pointer) })
     end
   end
 

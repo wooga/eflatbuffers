@@ -65,18 +65,17 @@ defmodule EflatbuffersTest do
     )
   end
 
-  test "table intermediate" do
-    map = %{my_string: "max", my_second_string: "minimum", my_bool: true}
-    intermediate =  [
-            [my_bool: <<1>>, my_string: <<8, 0, 0, 0>>, my_second_string: <<11, 0, 0, 0>>, my_omitted_bool: ""],
-            [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
+  test "data buffer" do
+    data_buffer =  [
+      [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, ""],
+      [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
     ]
     reply = Eflatbuffers.data_buffer_and_data(
       [{:my_bool, :bool}, {:my_string, :string}, {:my_second_string, :string}, {:my_omitted_bool, :bool}],
       [true, "max", "minimum", nil],
       '_'
     )
-    assert( intermediate == reply)
+    assert( data_buffer == reply)
   end
 
   test "table of scalars" do
