@@ -2,11 +2,19 @@ defmodule Eflatbuffers.SchemaTest do
   use ExUnit.Case
 
   @expected_simple %{
-      namespace: :"SyGame.Play",
+<<<<<<< Updated upstream
+      namespace: :"SyGame.Play", 
+      include: "some_other.fbs", 
+      attribute: "priority", 
+      file_identifier: "FOOO", 
+      file_extension: "baa", 
+=======
+      namespace: :SyGame,
       include: "some_other.fbs",
       attribute: "priority",
       file_identifier: "FOOO",
       file_extension: "baa",
+>>>>>>> Stashed changes
       root_type: :Monster
     }
 
@@ -21,12 +29,26 @@ defmodule Eflatbuffers.SchemaTest do
         hp: {:foo, -100},
         fl: {:float, 1.5},
         fl2: {:float, -1_512.3},
-        waa: {:bool, :true},
+<<<<<<< Updated upstream
+        waa: {:bool, :true},            
         frie: :ool,
         friendly: {:bool, false}
       ]
     }
+  }  
+=======
+        waa: {:bool, :true},
+        # frie: :bool,
+        # friendly: {:bool, false}
+      ]
+    }
   }
+
+  test "apply lexer to schema" do
+      File.read!("test/parser_all.fbs")
+      |> Eflatbuffers.Schema.lexer
+  end
+>>>>>>> Stashed changes
 
   @expected_enum %{:Color =>
     {{:enum, :byte},
@@ -34,15 +56,19 @@ defmodule Eflatbuffers.SchemaTest do
         :Red,
         :Green,
         :Blue
-      ]
+      ] 
     }
-  }
+  }  
 
   test "parse simple schema" do
     res =
       File.read!("test/parser_simple.fbs")
+<<<<<<< Updated upstream
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
+=======
+      |> Eflatbuffers.Schema.parse
+>>>>>>> Stashed changes
 
     assert {:ok, { %{}, @expected_simple} } == res
   end
@@ -50,41 +76,57 @@ defmodule Eflatbuffers.SchemaTest do
   test "parse schema with table" do
     res =
       File.read!("test/parser_table.fbs")
+<<<<<<< Updated upstream
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
+=======
+      |> Eflatbuffers.Schema.parse
+>>>>>>> Stashed changes
 
     assert {:ok, {@expected_table, %{}}} == res
   end
 
+<<<<<<< Updated upstream
   test "parse schema with enum" do
-    res =
+    res = 
       File.read!("test/parser_enum.fbs")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
 
-    assert {:ok, {@expected_enum, %{}}} == res
+    assert {:ok, {@expected_enum, %{}}} == res     
   end
 
   test "parse a whole schema" do
-    res =
+    res = 
       ["test/parser_simple.fbs", "test/parser_table.fbs", "test/parser_enum.fbs", ]
       |> Enum.map(fn(file) -> File.read!(file) end)
       |> Enum.join("\n")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
-    assert {:ok, {Map.merge(@expected_table, @expected_enum), @expected_simple}} == res
+    assert {:ok, {Map.merge(@expected_table, @expected_enum), @expected_simple}} == res     
+  end
+
+
+end
+=======
+  test "parse a whole schema" do
+    res =
+      File.read!("test/parser_all.fbs")
+      |> Eflatbuffers.Schema.parse
+
+    assert {:ok, {@expected_table, @expected_simple}} == res
   end
 
   test "correlate table" do
     parsed_entities = %{
       :table_inner =>
-        {:table, [field: :int, field_int_default: {:int, 23}]},
+        {:table, [field: :int]},
       :table_outer =>
         {:table, [table_field: :table_inner, table_vector: {:vector, :table_inner}]}
     }
     correlated_entities = %{
       :table_inner =>
-        {:table, [field: :int, field_int_default: {:int, 23}]},
+        {:table, [field: :int]},
       :table_outer =>
         {:table, [table_field: {:table, :table_inner}, table_vector: {:vector, {:table, :table_inner}}]}
     }
@@ -107,10 +149,5 @@ defmodule Eflatbuffers.SchemaTest do
     assert {correlated_entities, %{}} == Eflatbuffers.Schema.correlate({parsed_entities, %{}})
   end
 
-  test "parse doge schemas" do
-    File.ls!("test/doge_schemas")
-    |> Enum.map(fn(file) -> File.read!(Path.join("test/doge_schemas", file)) end)
-    |> Enum.map(fn(schema_str) -> assert {:ok, _} = Eflatbuffers.Schema.parse(schema_str) end)
-  end
-
 end
+>>>>>>> Stashed changes

@@ -134,7 +134,7 @@ defmodule Eflatbuffers do
 
   def write({:vector, type}, values, schema) when is_list(values) do
     vector_length = length(values)
-    types = Enum.map(1..vector_length, fn(_) -> type end)
+    types = for _ <- :lists.seq(0, (vector_length - 1)), do: type
     [ << vector_length :: little-little-size(32) >>, data_buffer_and_data(types, values, schema) ]
   end
 
@@ -297,7 +297,7 @@ defmodule Eflatbuffers do
         # and leave the offset untouched
         vtable(data_buffer, {[<< 0 :: little-size(16) >> | acc ], offset })
       scalar_or_pointer ->
-        vtable(data_buffer, {[<< offset :: little-size(16) >> | acc ], offset + byte_size(scalar_or_pointer) })
+        vtable(data_buffer, {[<< offset :: little-size(16) >> | acc ], offset + :erlang.iolist_size(scalar_or_pointer) })
     end
   end
 

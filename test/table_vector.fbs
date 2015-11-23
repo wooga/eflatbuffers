@@ -4,7 +4,7 @@ table outer
 }
 table inner
 {
-  value_inner:short;
+  value_inner:string;
 }
 root_type outer;
 
