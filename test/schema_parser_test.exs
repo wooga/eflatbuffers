@@ -75,5 +75,10 @@ defmodule Eflatbuffers.SchemaTest do
     assert {:ok, {Map.merge(@expected_table, @expected_enum), @expected_simple}} == res     
   end
 
+  test "parse doge schemas" do
+    File.ls!("test/doge_schemas")
+    |> Enum.map(fn(file) -> File.read!(Path.join("test/doge_schemas", file)) end)
+    |> Enum.map(fn(schema_str) -> assert {:ok, _} = Eflatbuffers.Schema.parse(schema_str) end)
+  end
 
 end
