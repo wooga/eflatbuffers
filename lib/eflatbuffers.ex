@@ -1,9 +1,10 @@
 defmodule Eflatbuffers do
 
   def write_fb(map, {tables, %{root_type: root_type}} = schema) do
-    root_table = [<< vtable_offset :: little-size(16) >> | _] =
-    write({:table, root_type}, map, schema)
-    [<< (vtable_offset + 6) :: little-size(16) >>, << 0, 0, 0, 0 >>, root_table]
+    
+    root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, schema)
+
+    [<< (vtable_offset + 8) :: little-size(32) >>, << 0, 0, 0, 0 >>, root_table]
   end
 
   def read_fb(data, {tables, %{root_type: root_type}} = schema) do
@@ -139,7 +140,6 @@ defmodule Eflatbuffers do
   end
 
   def read({:vector, type}, vtable_pointer, data, schema) do
-    IO.inspect {:vector, type, data}
     << vector_offset :: unsigned-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
     vector_pointer = vtable_pointer + vector_offset
     << _ :: binary-size(vector_pointer), vector_count :: unsigned-little-size(32), _ :: binary >> = data
@@ -178,14 +178,12 @@ defmodule Eflatbuffers do
 
   # read a complete table, given a pointer to the springboard
   def read({:table, table_name}, table_pointer_pointer, data, {tables, _options} = schema) when is_atom(table_name) do
-    << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(16), _ :: binary >> = data
+    << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(32), _ :: binary >> = data
     table_pointer = table_pointer_pointer + table_offset
     {:table, fields} = Map.get(tables, table_name)
     << _ :: binary-size(table_pointer), vtable_offset :: little-size(32), _ :: binary >> = data
     vtable_pointer = table_pointer - vtable_offset
-IO.inspect {:table, table_name, table_pointer, vtable_offset, byte_size(data)}
     << _ :: binary-size(table_pointer), inspect :: binary >> = data
-IO.inspect {:from_table_offset, inspect}
     << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _data_buffer_length :: little-size(16), _ :: binary >> = data
     vtable_fields_pointer = vtable_pointer + 4
     vtable_fields_length  = vtable_length  - 4
@@ -215,7 +213,6 @@ IO.inspect {:from_table_offset, inspect}
         map
       _ ->
         value = read(type, data_buffer_pointer + data_offset, data, schema)
-    IO.inspect {:table_field, name, type, value}
         Map.put(map, name, value)
     end
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
@@ -260,14 +257,14 @@ IO.inspect {:from_table_offset, inspect}
         complex_data_length = :erlang.iolist_size(complex_data)
         # for a table we do not point to the start but to the springboard
         data_pointer =
-        case type do
-          {:table, _} ->
-            [vtable_length, data_buffer_length, vtable | _] = complex_data
-            table_header_offset = :erlang.iolist_size([vtable_length, data_buffer_length, vtable])
-            data_offset + table_header_offset
-          _ ->
-            data_offset
-        end
+          case type do
+            {:table, _} ->
+              [vtable_length, data_buffer_length, vtable | _] = complex_data
+              table_header_offset = :erlang.iolist_size([vtable_length, data_buffer_length, vtable])
+              data_offset + table_header_offset
+            _ ->
+              data_offset
+          end
         data_buffer_and_data(types, values, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end

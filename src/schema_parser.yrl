@@ -2,8 +2,8 @@ Nonterminals root definition option fields field key_def value attribute_def att
 Terminals  table struct enum union namespace root_type include attribute file_identifier file_extension float int bool string '}' '{' '(' ')' '[' ']' ';' ',' ':' '=' quote.
 Rootsymbol root.
 
-root -> definition : {'$1', #{}}.
-root -> option     : {#{}, '$1'}.
+root -> definition      : {'$1', #{}}.
+root -> option          : {#{}, '$1'}.
 root -> root definition : add_def('$1', '$2').
 root -> root option     : add_opt('$1', '$2').
 
