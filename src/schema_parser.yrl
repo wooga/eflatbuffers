@@ -1,4 +1,4 @@
-Nonterminals root definition option fields field key_def value attribute_def attributes.
+Nonterminals root definition option fields field key_def value attribute_def attributes enum_fields.
 Terminals  table struct enum union namespace root_type include attribute file_identifier file_extension float int bool string '}' '{' '(' ')' '[' ']' ';' ',' ':' '=' quote.
 Rootsymbol root.
 
@@ -18,28 +18,33 @@ option -> file_identifier quote string quote ';' : #{get_name('$1') => get_value
 option -> file_extension quote string quote ';'  : #{get_name('$1') => get_value_bin('$3')}.
 
 % definitions
-definition -> table string '{' fields '}'  : #{get_value_atom('$2') => {table, '$4'} }.
+definition -> table string '{' fields '}'                 : #{get_value_atom('$2') => {table, '$4'} }.
+definition -> enum string ':' string '{' enum_fields '}'  : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
 
-fields -> field ';' : [ '$1' ].
-fields -> field ';' fields : [ '$1' | '$3' ].
+% tables
+fields -> field ';'         : [ '$1' ].
+fields -> field ';' fields  : [ '$1' | '$3' ].
 
-field -> key_def  : '$1'.
+field -> key_def                    : '$1'.
 field -> key_def '(' attributes ')' : '$1'.
 
 key_def -> string ':' string              : { get_value_atom('$1'), get_value_atom('$3') }.
 key_def -> string ':' '[' string ']'      : { get_value_atom('$1'), {vector, get_value_atom('$4')}}.
 key_def -> string ':' string '=' value    : { get_value_atom('$1'), {get_value_atom('$3'), '$5' }}.
 
-attributes -> attributes ',' attribute_def.
-attributes -> attribute_def.
-
-attribute_def -> string ':' value. %: { get_value_atom('$1'), '$2' }
-attribute_def -> string.           %: { get_value_atom('$1') }
+attributes -> attributes ',' attribute_def. %ignore
+attributes -> attribute_def.                %ignore
+attribute_def -> string ':' value.          %ignore
+attribute_def -> string.                    %ignore
 
 value -> int      : get_value('$1').
 value -> float    : get_value('$1').
 value -> bool     : get_value('$1').
 value -> string   : get_value_bin('$1').
+
+% enums
+enum_fields -> string                   : [ get_value_atom('$1') ].
+enum_fields -> string ',' enum_fields   : [ get_value_atom('$1') | '$3'].
 
 Erlang code.
 

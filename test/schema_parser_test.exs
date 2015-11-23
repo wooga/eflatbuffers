@@ -41,7 +41,8 @@ defmodule Eflatbuffers.SchemaTest do
   test "parse simple schema" do
     res = 
       File.read!("test/parser_simple.fbs")
-      |> Eflatbuffers.Schema.parse    
+      |> Eflatbuffers.Schema.lexer
+      |> :schema_parser.parse()
 
     assert {:ok, { %{}, @expected_simple} } == res
   end
@@ -49,7 +50,8 @@ defmodule Eflatbuffers.SchemaTest do
   test "parse schema with table" do
     res = 
       File.read!("test/parser_table.fbs")
-      |> Eflatbuffers.Schema.parse 
+      |> Eflatbuffers.Schema.lexer
+      |> :schema_parser.parse()
 
     assert {:ok, {@expected_table, %{}}} == res     
   end
@@ -57,25 +59,21 @@ defmodule Eflatbuffers.SchemaTest do
   test "parse schema with enum" do
     res = 
       File.read!("test/parser_enum.fbs")
-      |> Eflatbuffers.Schema.parse 
+      |> Eflatbuffers.Schema.lexer
+      |> :schema_parser.parse()
 
     assert {:ok, {@expected_enum, %{}}} == res     
   end
 
   test "parse a whole schema" do
     res = 
-      ["test/parser_simple.fbs", "test/parser_table.fbs"]
+      ["test/parser_simple.fbs", "test/parser_table.fbs", "test/parser_enum.fbs", ]
       |> Enum.map(fn(file) -> File.read!(file) end)
       |> Enum.join("\n")
-      |> Eflatbuffers.Schema.parse 
-
-    assert {:ok, {@expected_table, @expected_simple}} == res     
+      |> Eflatbuffers.Schema.lexer
+      |> :schema_parser.parse()
+    assert {:ok, {Map.merge(@expected_table, @expected_enum), @expected_simple}} == res     
   end
 
-  test "parse doge schemas" do
-    File.ls!("test/doge_schemas")
-    |> Enum.map(fn(file) -> File.read!(Path.join("test/doge_schemas", file)) end)
-    |> Enum.map(fn(schema_str) -> assert {:ok, _} = Eflatbuffers.Schema.parse(schema_str) end)
-  end
 
 end

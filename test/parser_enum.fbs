@@ -1,0 +1,6 @@
+enum Color : byte { 
+  Red, 
+  Green, 
+  Blue
+}
+
