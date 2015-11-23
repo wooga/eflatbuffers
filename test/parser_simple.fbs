@@ -1,4 +1,4 @@
-namespace SyGame ;     
+namespace SyGame.Play ;     
 include "some_other.fbs";   
 
 attribute "priority"  ;
