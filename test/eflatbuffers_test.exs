@@ -67,7 +67,7 @@ defmodule EflatbuffersTest do
 
   test "data buffer" do
     data_buffer =  [
-      [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, ""],
+      [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, []],
       [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
     ]
     reply = Eflatbuffers.data_buffer_and_data(
@@ -132,6 +132,25 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
+  test "read table with missing values" do
+    table = {:table,
+      [
+        field_a: :short,
+        field_b: :string,
+        #field_c: {:table, :table_a}
+      ]}
+    schema = { %{table_a: table}, %{root_type: :table_a} }
+    map = %{}
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    IO.inspect :erlang.iolist_to_binary(reply), limit: 1000
+    # reading
+    assert_eq(:simple_table, map, reply)
+    # flatc sets the internal defaults
+    # for scalars
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
+
   test "table with scalar vector" do
     table = {:table,
       [
@@ -185,6 +204,31 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
+  test "complex table with table vector" do
+    table = {:table,
+      [
+        value: :string,
+        inner: {:vector, {:table, :the_table}},
+      ]}
+    schema = { %{the_table: table}, %{root_type: :the_table} }
+    map = %{
+      value: "outer",
+      inner: [
+        %{
+          value: "middle",
+          inner: [
+          %{value: "inner",
+            inner: []
+          }
+        ]}]
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    #assert_eq(:table_vector, map, reply)
+    # reading
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
+
   test "nested vectors (not supported by flatc)" do
     table = {:table,
       [
@@ -218,14 +262,18 @@ defmodule EflatbuffersTest do
   end
 
   test "config debug fb" do
-    #{:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config))
     {:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config_path))
-IO.inspect schema
-    #map = Poison.decode!(File.read!("test/config.json"), [keys: :atoms])
-    #large_map = Poison.decode!(File.read!("test/config.json"), [keys: :atoms])
-    #Map.get(large_map, :config)
-    #|> IO.inspect
-    map = %{config: %{academy_technologies: %{technologies: [%{category: "aaa"}, %{}]}}}
+    map = %{technologies: [%{category: "aaa"}, %{}]}
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert_eq(:config_path, map, reply)
+    # reading
+  end
+
+  test "config fb" do
+    {:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config))
+    map = Poison.decode!(File.read!("test/config.json"), [keys: :atoms])
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))

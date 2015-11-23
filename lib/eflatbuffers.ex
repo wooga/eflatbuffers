@@ -139,6 +139,7 @@ defmodule Eflatbuffers do
   end
 
   def read({:vector, type}, vtable_pointer, data, schema) do
+    IO.inspect {:vector, type, data}
     << vector_offset :: unsigned-little-size(32) >> = read_from_data_buffer(vtable_pointer, data, 32)
     vector_pointer = vtable_pointer + vector_offset
     << _ :: binary-size(vector_pointer), vector_count :: unsigned-little-size(32), _ :: binary >> = data
@@ -182,6 +183,9 @@ defmodule Eflatbuffers do
     {:table, fields} = Map.get(tables, table_name)
     << _ :: binary-size(table_pointer), vtable_offset :: little-size(32), _ :: binary >> = data
     vtable_pointer = table_pointer - vtable_offset
+IO.inspect {:table, table_name, table_pointer, vtable_offset, byte_size(data)}
+    << _ :: binary-size(table_pointer), inspect :: binary >> = data
+IO.inspect {:from_table_offset, inspect}
     << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _data_buffer_length :: little-size(16), _ :: binary >> = data
     vtable_fields_pointer = vtable_pointer + 4
     vtable_fields_length  = vtable_length  - 4
@@ -199,10 +203,21 @@ defmodule Eflatbuffers do
     map
   end
 
+  # we find a null pointer
+  # so we don't set the value
+  def read_table_fields([{_, _} | fields], << 0, 0, vtable :: binary >>, data_buffer_pointer, data, schema, map) do
+    read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map)
+  end
   def read_table_fields([{name, type} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, schema, map) do
-    data_pointer = data_buffer_pointer + data_offset
-    value = read(type, data_pointer, data, schema)
-    map_new = Map.put(map, name, value)
+    map_new =
+    case data_offset do
+      0 ->
+        map
+      _ ->
+        value = read(type, data_buffer_pointer + data_offset, data, schema)
+    IO.inspect {:table_field, name, type, value}
+        Map.put(map, name, value)
+    end
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
   end
 
@@ -231,6 +246,10 @@ defmodule Eflatbuffers do
     [adjust_for_length(data_buffer), Enum.reverse(data)]
   end
 
+  # value is nil so we put a null pointer
+  def data_buffer_and_data([_ | types], [nil | values], schema, {scalar_and_pointers, data, data_offset}) do
+    data_buffer_and_data(types, values, schema, {[[] | scalar_and_pointers], data, data_offset})
+  end
   def data_buffer_and_data([type | types], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
     case scalar?(type) do
       true ->
@@ -265,6 +284,10 @@ defmodule Eflatbuffers do
     acc
   end
 
+  # this is null pointers, we pass
+  def adjust_for_length([[] | data_buffer], {acc, offset}) do
+    adjust_for_length(data_buffer, {[[]|acc], offset})
+  end
   # this is a scalar, we just pass the data
   def adjust_for_length([scalar | data_buffer], {acc, offset}) when is_binary(scalar) do
     adjust_for_length(data_buffer, {[scalar | acc], offset + byte_size(scalar)})
@@ -292,7 +315,7 @@ defmodule Eflatbuffers do
   end
   def vtable([data | data_buffer], {acc, offset}) do
     case data do
-      "" ->
+      [] ->
         # this is an undefined value, we put a null pointer
         # and leave the offset untouched
         vtable(data_buffer, {[<< 0 :: little-size(16) >> | acc ], offset })

@@ -18,4 +18,4 @@ table ConfigsRoot
   config:ConfigRoot;
 }
 
-root_type ConfigsRoot;
+root_type TechnologiesRoot;
