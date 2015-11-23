@@ -136,7 +136,7 @@ defmodule Eflatbuffers do
   def write({:vector, type}, values, schema) when is_list(values) do
     vector_length = length(values)
     types = for _ <- :lists.seq(0, (vector_length - 1)), do: type
-    [ << vector_length :: little-little-size(32) >>, data_buffer_and_data(types, values, schema) ]
+    [ << vector_length :: little-size(32) >>, data_buffer_and_data(types, values, schema) ]
   end
 
   def read({:vector, type}, vtable_pointer, data, schema) do
