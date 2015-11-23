@@ -1,0 +1,64 @@
+namespace DogeFB.Battle;
+
+file_identifier "bttl";
+
+table TypeAmount {
+  type:string;
+  amount:int;
+}
+
+table Unit {
+  type:string;
+  level:int;
+  hp:int;
+  hpPerUnit:int;
+}
+
+table RoundUnit {
+  type:string;
+  level:int;
+  hp:int;
+  hpPerUnit:int;
+  target:int;
+  distance:int;
+}
+
+table BattleRound {
+  defences:[RoundUnit];
+  attackers:[RoundUnit];
+}
+
+table BattleDetails {
+  rounds:[BattleRound];
+}
+
+table BattleSummary {
+  attackersWon:bool;
+  attackerId:string;
+  attackerName:string;
+  attackersUnits:[Unit];
+  attackersLeft:[Unit];
+  defenderId:string;
+  defenderName:string;
+  defendersDefences:[Unit];
+  defendersLeft:[Unit];
+  defenderTrophies:int;
+  loot:[TypeAmount];
+  time:long;
+}
+
+table BattleLog {
+  summary:BattleSummary;
+  details:BattleDetails;
+  seen:bool;
+  processed:bool;
+  processedForQuestPvpAttack:bool;
+  processedForQuestPvpDefend:bool;
+  processedForQuestPvpLoot:bool;
+}
+
+table BattleLogs {
+  logs:[BattleLog];
+}
+
+root_type BattleLogs;

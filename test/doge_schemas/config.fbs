@@ -1,0 +1,428 @@
+namespace DogeFB.Config;
+
+file_identifier "cnfg";
+
+table InitialGameStateRoot {
+  initialGameState:string;
+}
+
+table UnitLevel {
+ hp:int;
+ minDmg:int;
+ maxDmg:int;
+ upkeep:int;
+}
+
+table Unit {
+ id:string;
+ range:int (deprecated);
+ speed:int (deprecated);
+ targetingSystem:string (deprecated);
+ targetingPriority:int (deprecated);
+ activationOrder:int;
+ targets:[string];
+ category:string;
+ order:int;
+ levels:[UnitLevel];
+}
+
+table TownSector {
+  unlocked:bool;
+  time:int;
+  costs:[Resource];
+  minLevel:[BuildingRequired];
+}
+
+table ShipLevel {
+  required:string;
+  maxCargo:int;
+  speed:int;
+  maxArmy:int;
+  time:int;
+  minLevel:int;
+  costs:[Resource];
+  reward:[Resource];
+}
+
+table Ship {
+  id:string;
+  order:int;
+  levels:[ShipLevel];
+}
+
+table KeyValueString {
+  id:string;
+  value:string;
+}
+
+table ResourceRatio {
+  id:string;
+  amount:float;
+}
+
+table RequiredToResources {
+  id:string;
+  resources:[string];
+}
+
+table CategoryToResources {
+  id:string;
+  resources:[string];
+}
+
+table ResourcesRoot {
+  categories:[string];
+  categoryToResources:[CategoryToResources];
+  requiredToResources:[RequiredToResources];
+  initialResources:[Resource];
+  coins:[Resource];
+  resourcesPerGem:[ResourceRatio];
+  category:[KeyValueString];
+  required:[KeyValueString];
+  weights:[Resource];
+}
+
+table ResourceCosts {
+  costs:[Resource];
+}
+
+table Trophy {
+  win:int;
+  loss:int;
+}
+
+table RaidsRoot {
+  raidLootMinPercentage:float;
+  raidLootMaxPercentage:float;
+  raidUnlockFortressLevel:byte;
+  raidSuicideWarningThreshold:float;
+  islandAttackDuration:int;
+  shipTravelModifier:int;
+  pirateAttackMinimumIslandsNeeded:byte;
+  pirateAttackIslandsConqueredRatio:float;
+  pirateAttackMaximumPerSession:byte;
+  pirateAttackIntervalMin:int;
+  pirateAttackIntervalMax:int;
+  pirateAttackMaximumTotal:byte;
+  playerProtectedForSeconds:int;
+  playerProtectedInitiallyForSeconds:int;
+  islandLootInProductionSeconds:int;
+  islandLootCoinsFactor:int (deprecated);
+  battleMaxRounds:int;
+  unitCombatDamageMultiplier:float (deprecated);
+  defenceCombatDamageMultiplier:float (deprecated);
+  trophyAttack:Trophy;
+  trophyDefence:Trophy;
+  raidSlotCosts:[int];
+  raidScoutingTimes:[int];
+  raidRefreshCosts:[ResourceCosts];
+  islandLootGemsMin:int;
+  islandLootGemsMax:int;
+}
+
+table QuestUnlocks {
+  id:string;
+  unlocks:[string];
+}
+
+table Quest {
+  id:string;
+  priority:int;
+  desc:string;
+  hint:string;
+  action:string;
+  type:string;
+  info:string;
+  amount:int;
+  tutorial:bool;
+  requiredBuildings:[BuildingRequired];
+  requiredQuests:[string];
+  rewards:[Resource];
+}
+
+table MerchantRoot {
+  wait:[int];
+  duration:[int];
+  minValueMultiplier:float;
+  maxValueMultiplier:float;
+  storageCap:float;
+  resourceRewardChance:float;
+}
+
+table TradeResource {
+  id:string;
+  minLevel:int;
+  priceFactor:int;
+  lastChange:int;
+}
+
+table IslandDefence {
+  id:string;
+  level:int;
+}
+
+table Island {
+  id:string;
+  row:int;
+  col:int;
+  type:string;
+  level:byte;
+  name:string;
+  defences:[IslandDefence];
+  buys:[TradeResource];
+  sells:[TradeResource];
+}
+
+table IslandSector {
+ time:int;
+ minShipyard:int;
+ costs:[Resource];
+}
+
+table IslandLevel {
+  constructionTime:int;
+  time:int;
+  amount:int;
+  costs:[Resource];
+  reward:[Resource];
+}
+
+table IslandLevels {
+  id:string;
+  levels:[IslandLevel];
+}
+
+table KeyValueInt {
+  id:string;
+  value:int;
+}
+
+table GameRoot {
+  maxStorage:int;
+  maxCoinStorage:int;
+  housing:int;
+  workerProductionTime:int;
+  lastBreakingVersion:int;
+  sessionCheckFailuresAllowed:int;
+  sessionCheckEveryMilliseconds:int;
+  restartAfter:int;
+  tileWidth:int;
+  tileHeight:int;
+  currentClientVersion:int;
+  resourceBarOrder:[KeyValueInt];
+  initialZoomTownSmallScreen:float;
+  initialZoomWorldSmallScreen:float;
+  maxZoomTownSmallScreen:float;
+  maxZoomWorldSmallScreen:float;
+  minZoomTownSmallScreen:float;
+  minZoomWorldSmallScreen:float;
+  initialXPositionTown:float;
+  initialYPositionTown:float;
+  initialXPositionWorld:float;
+  initialYPositionWorld:float;
+  initialZoomTownBigScreen:float;
+  initialZoomWorldBigScreen:float;
+  maxZoomTownBigScreen:float;
+  maxZoomWorldBigScreen:float;
+  minZoomTownBigScreen:float;
+  minZoomWorldBigScreen:float;
+  shipTravelTimeToFirstSector:int;
+}
+
+table DefenceLevel {
+  hp:int;
+  minDmg:int;
+  maxDmg:int;
+  range:int;
+  time:int;
+  minBuildingLevel:byte;
+  costs:[Resource];
+  requiredTech:[string];
+}
+
+table Defence {
+  id:string;
+  order:int;
+  category:string;
+  targetingSystem:string (deprecated);
+  targetingPriority:int (deprecated);
+  targets:[string];
+  activationOrder:int;
+  description:string;
+  levels:[DefenceLevel];
+}
+
+table CraftingItem {
+  id:string;
+  order:int;
+  minLevel:int;
+  time:int;
+  description:string;
+  cost:[Resource];
+  requiredTech:[string];
+}
+
+table BuildingRequired {
+  id:string;
+  level:byte;
+}
+
+table BuildingProduction {
+  supply:[Resource];
+  produce:Resource;
+  time:int;
+}
+
+table BuildingLevel {
+  costs:[Resource];
+  time:int;
+  minBuildingLevel:[BuildingRequired];
+  production:BuildingProduction;
+  capacity:int;
+  housing:int;
+  boost:float;
+  productionBuildings:byte;
+  civicBuildings:byte;
+  craftingQueueSize:int;
+  resourceProtection:float;
+  requiredResource:[string];
+  showName:bool;
+  showLevel:bool;
+}
+
+table BuildingShopItem {
+  shopCategory:string;
+  maxAmount:int;
+  order:int;
+  infoText:string;
+}
+
+table RGB {
+  r:float;
+  g:float;
+  b:float;
+}
+
+table Building {
+  id:string;
+  category:string;
+  priority:int;
+  size:byte;
+  color:RGB;
+  shop:BuildingShopItem;
+  levels:[BuildingLevel];
+  craftingItems:[CraftingItem];
+  bonus:string;
+}
+
+table Resource {
+  id:string;
+  amount:int;
+}
+
+table TechnologyLevel {
+  boostAmount:float;
+  time:int;
+  mainBuildingLevelRequired:byte;
+  buildingRequired:string;
+  resourceRequired:string;
+  costs:[Resource];
+}
+
+table Technology {
+  id:string;
+  order:int;
+  boostType:string;
+  category:string;
+  technologyRequired:string;
+  unlocks:[string];
+  levels:[TechnologyLevel];
+}
+
+table UnitsRoot
+{
+  units:[Unit];
+}
+
+table TownSectorsRoot
+{
+  townSectors:[TownSector];
+}
+
+table ShipsRoot
+{
+  ships:[Ship];
+}
+
+table QuestsRoot
+{
+  initialQuests:[string];
+  quests:[Quest];
+  questUnlocks:[QuestUnlocks];
+}
+
+table IslandsRoot
+{
+  types:[string];
+  islands:[Island];
+}
+
+table IslandSectorsRoot
+{
+  islandSectors:[IslandSector];
+}
+
+table IslandLevelsRoot
+{
+  islandLevels:[IslandLevels];
+}
+
+table DefencesRoot
+{
+  defences:[Defence];
+}
+
+table BuildingsRoot
+{
+  buildings:[Building];
+}
+
+table CanalsRoot
+{
+  canals:[byte];
+}
+
+table TechnologiesRoot
+{
+  initialTechnologies:[string];
+  technologies:[Technology];
+}
+
+table ConfigRoot
+{
+  academy_technologies:TechnologiesRoot;
+  arsenal_technologies:TechnologiesRoot;
+  building_canals:CanalsRoot;
+  buildings:BuildingsRoot;
+  defences:DefencesRoot;
+  game:GameRoot;
+  island_levels:IslandLevelsRoot;
+  island_sectors:IslandSectorsRoot;
+  islands:IslandsRoot;
+  merchant:MerchantRoot;
+  quests:QuestsRoot;
+  raids:RaidsRoot;
+  resources:ResourcesRoot;
+  ships:ShipsRoot;
+  town_sectors:TownSectorsRoot;
+  units:UnitsRoot;
+  initial_game_state:InitialGameStateRoot;
+}
+
+table ConfigsRoot
+{
+  config:ConfigRoot;
+  abString:string;
+}
+
+root_type ConfigsRoot;

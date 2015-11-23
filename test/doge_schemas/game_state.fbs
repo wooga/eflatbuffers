@@ -1,0 +1,229 @@
+file_identifier "gmst";
+
+namespace DogeFB.GameState;
+
+table BattleLogUnit {
+  type:string;
+  level:int;
+  hp:int;
+  hpPerUnit:int;
+}
+
+table BattleSummary {
+  attackersWon:bool;
+  attackerId:string;
+  attackerName:string;
+  attackersUnits:[BattleLogUnit];
+  attackersLeft:[BattleLogUnit];
+  defenderId:string;
+  defenderName:string;
+  defendersDefences:[BattleLogUnit];
+  defendersLeft:[BattleLogUnit];
+  defenderTrophies:int;
+  loot:[TypeAmount];
+  time:long;
+}
+
+table BattleLog {
+  summary:BattleSummary;
+  seen:bool;
+  processed:bool;
+  processedForQuestPvpAttack:bool;
+  processedForQuestPvpDefend:bool;
+  processedForQuestPvpLoot:bool;
+}
+
+table Technology {
+  type:string;
+  level:int;
+}
+
+table TypeAmount {
+  type:string;
+  amount:int;
+}
+
+table Position {
+  x:short;
+  y:short;
+}
+
+table TimeInterval {
+  start:long;
+  end:long;
+}
+
+table MerchantShip {
+  order:byte;
+  wantedItems:[string];
+  rewardItems:[string];
+  wantedQuantities:[int];
+  rewardQuantities:[int];
+  done:[bool];
+}
+
+table IslandSector {
+  discovering:bool;
+  row:short;
+  column:short;
+}
+
+table TownSector {
+  discovering:bool;
+  row:short;
+  column:short;
+  startEndTime:TimeInterval;
+}
+
+
+table CityDefences {
+  type:string;
+  level:byte;
+  upgrading:bool;
+  upgradingTime:TimeInterval;
+}
+
+table Defence {
+  type:string;
+  level:byte;
+  hp:int;
+}
+
+table Building {
+  type:string;
+  level:byte;
+  position:Position;
+  paused:bool (deprecated);
+  production:TimeInterval (deprecated);
+  storage:[TypeAmount];
+  upgrading:bool;
+  startEndTime:TimeInterval;
+  construction:string;
+  currentCraftingItem:string (deprecated);
+  currentCraftingStartTime:long;
+  craftingQueue:[TypeAmount];
+  research:Technology;
+  pause:long;
+  producing:bool;
+  userPaused:bool;
+  defenceUpgrading:bool;
+}
+
+table Island {
+  name:string;
+  owner:string;
+  level:byte;
+  production:TimeInterval (deprecated);
+  defences:[Defence];
+  upgrading:bool;
+  startEndTime:TimeInterval;
+  producing:bool;
+}
+
+table CurrentQuest {
+  name:string;
+  taskAmountToComplete:int;
+  taskAmountDone:int;
+  done:bool;
+}
+
+table ShipRaid {
+  slot:int;
+  sbsId:string;
+  name:string;
+  distance:int;
+  trophies:int;
+  defences:[Defence];
+  resources:[TypeAmount];
+}
+
+table ShipTrade {
+  sold:[TypeAmount];
+  bought:[TypeAmount];
+  debit:int;
+  credit:int;
+}
+
+enum ShipActionName : byte {
+  IslandUpgrade,
+	IslandAttack,
+	CityTrade,
+	SectorDiscover,
+	RaidPlayer
+}
+
+enum ShipActionPhase : byte {
+  Travel,
+	Wait,
+	Return,
+	CargoOffLoad
+}
+
+table ShipAction {
+  name:ShipActionName;
+  phase:ShipActionPhase;
+  targetPosition:Position;
+}
+
+table Ship {
+  type:string;
+  status:float;
+  order:byte;
+  level:byte;
+  cargo:[TypeAmount];
+  armyCargo:[TypeAmount];
+  upgrading:bool;
+  repairing:bool;
+  startEndTime:TimeInterval;
+  action:ShipAction;
+  trade:ShipTrade;
+  raid:ShipRaid;
+}
+
+table RaidPlayer {
+  locked:bool;
+  attacked:bool;
+  scouting:bool;
+  endTime:long;
+  info:ShipRaid;
+}
+
+table Workers {
+  productionStartTime:long;
+  assignedWorkers:int;
+  productionEndTime:long;
+}
+
+table GameData {
+  workers:Workers;
+  trophies:int;
+  academyTechnologies:[Technology];
+  arsenalTechnologies:[Technology];
+  ships:[Ship];
+  currentQuests:[CurrentQuest];
+  completedQuests:[string];
+  playerResources:[TypeAmount];
+  nextPirateAttack:long;
+  leftOverResources:[TypeAmount];
+  islands:[Island];
+  fortressLevel:byte;
+  defences:[CityDefences];
+  buildings:[Building];
+  islandSectors:[IslandSector];
+  townSectors:[TownSector];
+  merchantVisits:[long];
+  merchantShips:[MerchantShip];
+  playerName:string;
+  reservedResources:[TypeAmount];
+  battleLogsAttack:[BattleLog];
+  battleLogsDefence:[BattleLog];
+  lastPvpAttackTime:long;
+  raidPlayers:[RaidPlayer];
+}
+
+table GameStateRoot {
+  version:int = 0;
+  gameData1:GameData;
+}
+
+root_type GameStateRoot;
