@@ -1,19 +1,27 @@
 # Eflatbuffers
 
-**TODO: Add description**
+## features
 
-## Installation
+* tables
+* scalars
+* strings
+* vectors
+* json -> fb
+* fb   -> json
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+## pending features
 
-  1. Add eflatbuffers to your list of dependencies in `mix.exs`:
+* enumerables
+* unions
+* defaults
+* file identifier
+* random access
+* shared strings
+* shared vtables
 
-        def deps do
-          [{:eflatbuffers, "~> 0.0.1"}]
-        end
+## not planned
 
-  2. Ensure eflatbuffers is started before your application:
+* alignment
+* additional attributes
+* structs
 
-        def application do
-          [applications: [:eflatbuffers]]
-        end
