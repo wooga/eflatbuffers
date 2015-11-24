@@ -28,7 +28,8 @@ defmodule Eflatbuffers.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:flatbuffer_port, git: "git:elixir-flatbuffers", branch: "master", override: true},
+      {:flatbuffer_port, git: "git:elixir-flatbuffers",              branch: "master", override: true},
+      {:jiffy,           git: "https://github.com/davisp/jiffy.git", branch: "master", override: true},
     ]
   end
 end

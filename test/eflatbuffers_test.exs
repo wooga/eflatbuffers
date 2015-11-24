@@ -276,8 +276,10 @@ defmodule EflatbuffersTest do
     map = Poison.decode!(File.read!("test/config.json"), [keys: :atoms])
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
+    IO.puts Poison.encode!(reply_map)
     assert_eq(:config_path, map, reply)
+    assert(map == reply_map, schema)
     # reading
   end
 
