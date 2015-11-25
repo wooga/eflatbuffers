@@ -9,6 +9,7 @@
 * json -> fb
 * fb   -> json
 * enumerables
+* file identifier
 
 ## features not in flatc
 
@@ -19,7 +20,6 @@
 
 * unions
 * defaults
-* file identifier
 * random access
 * shared strings
 * shared vtables
