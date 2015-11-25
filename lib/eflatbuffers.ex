@@ -1,10 +1,16 @@
 defmodule Eflatbuffers do
 
-  def write_fb(map, {tables, %{root_type: root_type}} = schema) do
+  def write_fb(map, {tables, %{root_type: root_type} = options} = schema) do
     
     root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, schema)
 
-    [<< (vtable_offset + 8) :: little-size(32) >>, << 0, 0, 0, 0 >>, root_table]
+    file_identifier = 
+      case Map.get(options, :file_identifier) do
+        << bin :: size(32) >> -> << bin :: size(32) >>
+        _                     -> << 0   :: size(32) >>
+      end
+
+    [<< (vtable_offset + 8) :: little-size(32) >>, file_identifier, root_table]
   end
 
   def read_fb(data, {tables, %{root_type: root_type}} = schema) do

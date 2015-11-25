@@ -272,15 +272,18 @@ defmodule EflatbuffersTest do
   end
 
   test "config fb" do
-    {:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config))
+    {:ok, schema} = Eflatbuffers.Schema.parse(load_schema({:doge, :config}))
     map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
     reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
-    # IO.puts Poison.encode!(reply_map)
-    assert_eq(:config_path, map, reply)
-    assert(map == reply_map, schema)
-    # reading
+
+    assert round_floats(map) == round_floats(reply_map)
+
+    looped_fb = Eflatbuffers.write_fb(reply_map, schema)
+    assert looped_fb == reply
+
+    assert_eq({:doge, :config}, map, reply)
   end
 
   test "fb with string" do
@@ -336,9 +339,15 @@ defmodule EflatbuffersTest do
     assert_eq(:table_bool_string_string, map, reply)
   end
 
+  test "file identifier" do    
+    schema = {%{foo: {:table, [a: :bool]}}, %{root_type: :foo, file_identifier: "helo"}}
+    reply = Eflatbuffers.write_fb(%{}, schema)
+    assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
+  end
+
   def assert_eq(schema, map, binary) do
     map_looped = reference_map(schema, :erlang.iolist_to_binary(binary))
-    assert( map == map_looped )
+    assert round_floats(map) == round_floats(map_looped)
   end
 
   def reference_fb(schema, data) when is_map(data) do
@@ -364,7 +373,7 @@ defmodule EflatbuffersTest do
   end
 
 
-   def port_response(port) do
+  def port_response(port) do
     receive do
         {^port, {:data, data}}  ->
           FlatbufferPort.parse_reponse(data)
@@ -372,6 +381,10 @@ defmodule EflatbuffersTest do
       3000 ->
         :timeout
     end
+  end
+
+  def load_schema({:doge, type}) do
+    File.read!("test/doge_schemas/" <> Atom.to_string(type) <> ".fbs")
   end
 
   def load_schema(type) do
@@ -387,5 +400,13 @@ defmodule EflatbuffersTest do
     end
   end
 
+  def round_floats(map) when is_map(map) do
+    map
+    |> Enum.map(fn({k,v}) -> {k, round_floats(v)} end)
+    |> Enum.into(%{})
+  end
+  def round_floats(list) when is_list(list), do: Enum.map(list, &round_floats/1)
+  def round_floats(float) when is_float(float), do: round(float)
+  def round_floats(other), do: other
 
 end
