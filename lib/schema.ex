@@ -30,6 +30,9 @@ defmodule Eflatbuffers.Schema do
     Enum.reduce(
       entities,
       %{},
+      # for a tables we transform
+      # the types to explicityl signify
+      # vectors, tables, and enums
       fn({key, {:table, fields}}, acc) ->
         Map.put(
           acc,
@@ -40,6 +43,20 @@ defmodule Eflatbuffers.Schema do
             fn({field_name, field_value}) -> {field_name, substitute_field(field_value, entities)} end)
           }
         )
+        # for enums we change the list of options
+        # into a map for faster lookup when
+        # writing and reading
+        ({key, {{:enum, type}, fields}}, acc) ->
+          hash = Enum.reduce(
+            Enum.with_index(fields),
+            %{},
+            fn({field, index}, hash_acc) ->
+              Map.put(hash_acc, field, index) |> Map.put(index, field)
+            end
+          )
+          Map.put(acc, key, {{:enum, type}, hash})
+        # for scalars we keep
+        # things as they are
         ({key, other}, acc) ->
           Map.put(acc, key, other)
       end

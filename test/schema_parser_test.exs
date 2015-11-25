@@ -120,7 +120,7 @@ defmodule Eflatbuffers.SchemaTest do
     }
     correlated_entities = %{
       :enum_inner =>
-        {{:enum, :byte}, [:Red, :Green, :Blue]},
+        {{:enum, :byte}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
       :table_outer =>
         {:table, [enum_field: {:enum, :enum_inner}, enum_vector: {:vector, {:enum, :enum_inner}}]}
     }

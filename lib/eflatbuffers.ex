@@ -150,7 +150,7 @@ defmodule Eflatbuffers do
   def write({:enum, enum_name}, value, {tables, _} = schema) when is_binary(value) do
     {{:enum, type}, options} =  Map.get(tables, enum_name)
     value_atom = :erlang.binary_to_existing_atom(value, :utf8)
-    index = Enum.find_index(options, fn(option) -> option == value_atom end)
+    index = Map.get(options, value_atom)
     case index do
       nil -> throw({:error, {:not_in_enum, value_atom, options}})
       _   -> write(type, index, schema)
@@ -160,7 +160,7 @@ defmodule Eflatbuffers do
   def read({:enum, enum_name}, vtable_pointer, data, {tables, _options} = schema) do
     {{:enum, type}, options} =  Map.get(tables, enum_name)
     index = read(type, vtable_pointer, data, schema)
-    value_atom = Enum.at(options, index)
+    value_atom = Map.get(options, index)
     Atom.to_string(value_atom)
   end
 

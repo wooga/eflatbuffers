@@ -185,7 +185,7 @@ defmodule EflatbuffersTest do
   test "table with enum" do
     tables = %{
       :enum_inner =>
-        {{:enum, :int}, [:Red, :Green, :Blue]},
+        {{:enum, :int}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
       :table_outer =>
         {:table, [enum_field: {:enum, :enum_inner}]}
     }
@@ -203,7 +203,7 @@ defmodule EflatbuffersTest do
   test "vector of enum" do
     tables = %{
       :enum_inner =>
-        {{:enum, :int}, [:Red, :Green, :Blue]},
+        {{:enum, :int}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
       :table_outer =>
         {:table, [enum_fields: {:vector, {:enum, :enum_inner}}]}
     }
