@@ -1,6 +1,6 @@
 # Eflatbuffers
 
-## features
+## features from flatc
 
 * tables
 * scalars
@@ -8,6 +8,11 @@
 * vectors
 * json -> fb
 * fb   -> json
+
+## features not in flatc
+
+* nested vectors
+* vectors of enums
 
 ## pending features
 

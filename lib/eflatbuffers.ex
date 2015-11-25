@@ -1,7 +1,7 @@
 defmodule Eflatbuffers do
 
   def write_fb(map, {tables, %{root_type: root_type}} = schema) do
-    
+
     root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, schema)
 
     [<< (vtable_offset + 8) :: little-size(32) >>, << 0, 0, 0, 0 >>, root_table]
@@ -147,13 +147,30 @@ defmodule Eflatbuffers do
     read_vector_elements(type, is_scalar, vector_pointer + 4, vector_count, data, schema)
   end
 
+  def write({:enum, enum_name}, value, {tables, _} = schema) when is_binary(value) do
+    {{:enum, type}, options} =  Map.get(tables, enum_name)
+    value_atom = :erlang.binary_to_existing_atom(value, :utf8)
+    index = Enum.find_index(options, fn(option) -> option == value_atom end)
+    case index do
+      nil -> throw({:error, {:not_in_enum, value_atom, options}})
+      _   -> write(type, index, schema)
+    end
+  end
+
+  def read({:enum, enum_name}, vtable_pointer, data, {tables, _options} = schema) do
+    {{:enum, type}, options} =  Map.get(tables, enum_name)
+    index = read(type, vtable_pointer, data, schema)
+    value_atom = Enum.at(options, index)
+    Atom.to_string(value_atom)
+  end
+
   def read_vector_elements(_, _, _, 0, _, _) do
     []
   end
 
   def read_vector_elements(type, true, vector_pointer, vector_count, data, schema) do
     value  = read(type, vector_pointer, data, schema)
-    offset = scalar_size(type)
+    offset = scalar_size(extract_scalar_type(type, schema))
     [value | read_vector_elements(type, true, vector_pointer + offset, vector_count - 1, data, schema)]
   end
 
@@ -167,7 +184,11 @@ defmodule Eflatbuffers do
   # write a complete table
   def write({:table, table_name}, map, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
     {:table, fields}    = Map.get(tables, table_name)
-    {types, values}     = Enum.reduce(Enum.reverse(fields), {[], []}, fn({name, type}, {type_acc, value_acc}) -> {[type | type_acc], [Map.get(map, name) | value_acc]} end)
+    {types, values}     = Enum.reduce(
+      Enum.reverse(fields),
+      {[], []},
+      fn({name, type}, {type_acc, value_acc}) -> {[type | type_acc], [Map.get(map, name) | value_acc]} end
+    )
     [data_buffer, data] = data_buffer_and_data(types, values, schema)
     vtable              = vtable(data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
@@ -244,7 +265,7 @@ defmodule Eflatbuffers do
   end
 
   # value is nil so we put a null pointer
-  def data_buffer_and_data([_ | types], [nil | values], schema, {scalar_and_pointers, data, data_offset}) do
+  def data_buffer_and_data([_type | types], [nil | values], schema, {scalar_and_pointers, data, data_offset}) do
     data_buffer_and_data(types, values, schema, {[[] | scalar_and_pointers], data, data_offset})
   end
   def data_buffer_and_data([type | types], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
@@ -331,9 +352,18 @@ defmodule Eflatbuffers do
     flatten_intermediate_data_buffer(data_buffer, [value | acc])
   end
 
+  def extract_scalar_type({:enum, enum_name}, {tables, _options}) do
+    {{:enum, type}, _options} =  Map.get(tables, enum_name)
+    type
+  end
+
+  def extract_scalar_type(type, _), do: type
+
+
   def scalar?(:string),      do: false
   def scalar?({:vector, _}), do: false
   def scalar?({:table,  _}), do: false
+  def scalar?({:enum,  _}),  do: true
   def scalar?(_),            do: true
 
   def scalar_size(:byte ), do: 1
@@ -350,7 +380,6 @@ defmodule Eflatbuffers do
   def scalar_size(:long  ), do: 8
   def scalar_size(:ulong ), do: 8
   def scalar_size(:double), do: 8
-
   def scalar_size(type), do: throw({:error, {:unknown_scalar, type}})
 
 end

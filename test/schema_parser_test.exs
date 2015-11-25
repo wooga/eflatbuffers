@@ -40,7 +40,7 @@ defmodule Eflatbuffers.SchemaTest do
 
   @expected_union %{:Animal =>
     {
-      :union, 
+      :union,
       [
         :Dog,
         :Cat,
@@ -114,7 +114,7 @@ defmodule Eflatbuffers.SchemaTest do
   test "correlate enumerable" do
     parsed_entities = %{
       :enum_inner =>
-      {{:enum, :byte}, [:Red, :Green, :Blue]},
+        {{:enum, :byte}, [:Red, :Green, :Blue]},
       :table_outer =>
         {:table, [enum_field: :enum_inner, enum_vector: {:vector, :enum_inner}]}
     }

@@ -1,0 +1,5 @@
+enum enum_inner : byte { Red, Green, Blue }
+table enum_outer {
+  enum_field:enum_inner;
+}
+root_type enum_outer;

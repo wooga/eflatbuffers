@@ -143,7 +143,6 @@ defmodule EflatbuffersTest do
     map = %{}
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
-    IO.inspect :erlang.iolist_to_binary(reply), limit: 1000
     # reading
     assert_eq(:simple_table, map, reply)
     # flatc sets the internal defaults
@@ -183,6 +182,40 @@ defmodule EflatbuffersTest do
     assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
+  test "table with enum" do
+    tables = %{
+      :enum_inner =>
+        {{:enum, :int}, [:Red, :Green, :Blue]},
+      :table_outer =>
+        {:table, [enum_field: {:enum, :enum_inner}]}
+    }
+    schema = { tables, %{root_type: :table_outer} }
+    map = %{
+      enum_field: "Green",
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert_eq(:enum_field, map, reply)
+    # reading
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
+
+  test "vector of enum" do
+    tables = %{
+      :enum_inner =>
+        {{:enum, :int}, [:Red, :Green, :Blue]},
+      :table_outer =>
+        {:table, [enum_fields: {:vector, {:enum, :enum_inner}}]}
+    }
+    schema = { tables, %{root_type: :table_outer} }
+    map = %{
+      enum_fields: ["Red", "Green", "Blue"]
+    }
+    # writing
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    # reading
+  end
 
   test "table with table vector" do
     outer_table = {:table,
@@ -277,7 +310,6 @@ defmodule EflatbuffersTest do
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
     reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
-    IO.puts Poison.encode!(reply_map)
     assert_eq(:config_path, map, reply)
     assert(map == reply_map, schema)
     # reading
