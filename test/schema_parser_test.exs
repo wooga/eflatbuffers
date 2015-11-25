@@ -51,7 +51,7 @@ defmodule Eflatbuffers.SchemaTest do
 
   test "parse simple schema" do
     res =
-      File.read!("test/parser_simple.fbs")
+      File.read!("test/schemas/parser_simple.fbs")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
 
@@ -60,7 +60,7 @@ defmodule Eflatbuffers.SchemaTest do
 
   test "parse schema with table" do
     res =
-      File.read!("test/parser_table.fbs")
+      File.read!("test/schemas/parser_table.fbs")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
 
@@ -69,7 +69,7 @@ defmodule Eflatbuffers.SchemaTest do
 
   test "parse schema with enum" do
     res =
-      File.read!("test/parser_enum.fbs")
+      File.read!("test/schemas/parser_enum.fbs")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
 
@@ -78,7 +78,7 @@ defmodule Eflatbuffers.SchemaTest do
 
   test "parse schema with union" do
     res =
-      File.read!("test/parser_union.fbs")
+      File.read!("test/schemas/parser_union.fbs")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
 
@@ -87,7 +87,7 @@ defmodule Eflatbuffers.SchemaTest do
 
   test "parse a whole schema" do
     res =
-      ["test/parser_simple.fbs", "test/parser_table.fbs", "test/parser_union.fbs", "test/parser_enum.fbs", ]
+      ["test/schemas/parser_simple.fbs", "test/schemas/parser_table.fbs", "test/schemas/parser_union.fbs", "test/schemas/parser_enum.fbs", ]
       |> Enum.map(fn(file) -> File.read!(file) end)
       |> Enum.join("\n")
       |> Eflatbuffers.Schema.lexer

@@ -273,11 +273,11 @@ defmodule EflatbuffersTest do
 
   test "config fb" do
     {:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config))
-    map = Poison.decode!(File.read!("test/config.json"), [keys: :atoms])
+    map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
     # writing
     reply = Eflatbuffers.write_fb(map, schema)
     reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
-    IO.puts Poison.encode!(reply_map)
+    # IO.puts Poison.encode!(reply_map)
     assert_eq(:config_path, map, reply)
     assert(map == reply_map, schema)
     # reading
@@ -375,7 +375,7 @@ defmodule EflatbuffersTest do
   end
 
   def load_schema(type) do
-     File.read!("test/" <> Atom.to_string(type) <> ".fbs")
+     File.read!("test/schemas/" <> Atom.to_string(type) <> ".fbs")
   end
 
   def flush_port_commands do

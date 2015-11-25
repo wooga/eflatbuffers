@@ -18,8 +18,8 @@ option -> file_identifier quote string quote ';' : #{get_name('$1') => get_value
 option -> file_extension quote string quote ';'  : #{get_name('$1') => get_value_bin('$3')}.
 
 % definitions
-definition -> table string '{' fields '}'                 : #{get_value_atom('$2') => {table, '$4'} }.
-definition -> table string '{' '}'                        : #{get_value_atom('$2') => {table, []} }.
+definition -> table string '{' fields '}'           : #{get_value_atom('$2') => {table, '$4'} }.
+definition -> table string '{' '}'                  : #{get_value_atom('$2') => {table, []} }.
 definition -> enum string ':' string '{' atoms '}'  : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
 definition -> union string '{' atoms '}'            : #{get_value_atom('$2') => {union, '$4'} }.
 
