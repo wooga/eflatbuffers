@@ -89,6 +89,8 @@ defmodule Eflatbuffers.Schema do
         {:table, field_value}
       {{:enum, _}, _} ->
         {:enum, field_value}
+      {:union, _} ->
+        {:union, field_value}
     end
   end
 
