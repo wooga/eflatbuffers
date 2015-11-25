@@ -8,6 +8,7 @@
 * vectors
 * json -> fb
 * fb   -> json
+* enumerables
 
 ## features not in flatc
 
@@ -16,7 +17,6 @@
 
 ## pending features
 
-* enumerables
 * unions
 * defaults
 * file identifier
