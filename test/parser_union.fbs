@@ -1,0 +1,6 @@
+union Animal { 
+  Dog, 
+  Cat, 
+  Mouse
+}
+

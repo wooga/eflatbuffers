@@ -38,6 +38,17 @@ defmodule Eflatbuffers.SchemaTest do
     }
   }
 
+  @expected_union %{:Animal =>
+    {
+      :union, 
+      [
+        :Dog,
+        :Cat,
+        :Mouse
+      ]
+    }
+  }
+
   test "parse simple schema" do
     res =
       File.read!("test/parser_simple.fbs")
@@ -65,14 +76,23 @@ defmodule Eflatbuffers.SchemaTest do
     assert {:ok, {@expected_enum, %{}}} == res
   end
 
+  test "parse schema with union" do
+    res =
+      File.read!("test/parser_union.fbs")
+      |> Eflatbuffers.Schema.lexer
+      |> :schema_parser.parse()
+
+    assert {:ok, {@expected_union, %{}}} == res
+  end
+
   test "parse a whole schema" do
     res =
-      ["test/parser_simple.fbs", "test/parser_table.fbs", "test/parser_enum.fbs", ]
+      ["test/parser_simple.fbs", "test/parser_table.fbs", "test/parser_union.fbs", "test/parser_enum.fbs", ]
       |> Enum.map(fn(file) -> File.read!(file) end)
       |> Enum.join("\n")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
-    assert {:ok, {Map.merge(@expected_table, @expected_enum), @expected_simple}} == res
+    assert {:ok, {Map.merge(@expected_table, @expected_enum) |> Map.merge(@expected_union), @expected_simple}} == res
   end
 
   test "correlate table" do

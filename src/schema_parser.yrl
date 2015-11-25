@@ -1,4 +1,4 @@
-Nonterminals root definition option fields field key_def value attribute_def attributes enum_fields.
+Nonterminals root definition option fields field key_def value attribute_def attributes atoms atom.
 Terminals  table struct enum union namespace root_type include attribute file_identifier file_extension float int bool string '}' '{' '(' ')' '[' ']' ';' ',' ':' '=' quote.
 Rootsymbol root.
 
@@ -20,8 +20,8 @@ option -> file_extension quote string quote ';'  : #{get_name('$1') => get_value
 % definitions
 definition -> table string '{' fields '}'                 : #{get_value_atom('$2') => {table, '$4'} }.
 definition -> table string '{' '}'                        : #{get_value_atom('$2') => {table, []} }.
-definition -> enum string ':' string '{' enum_fields '}'  : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
-definition -> union string '{' enum_fields '}'            : #{get_value_atom('$2') => {union, []} }.
+definition -> enum string ':' string '{' atoms '}'  : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
+definition -> union string '{' atoms '}'            : #{get_value_atom('$2') => {union, '$4'} }.
 
 % tables
 fields -> field ';'         : [ '$1' ].
@@ -44,9 +44,11 @@ value -> float    : get_value('$1').
 value -> bool     : get_value('$1').
 value -> string   : get_value_bin('$1').
 
-% enums
-enum_fields -> string                   : [ get_value_atom('$1') ].
-enum_fields -> string ',' enum_fields   : [ get_value_atom('$1') | '$3'].
+% enums + unions
+atoms -> atom             : [ '$1' ].
+atoms -> atom ',' atoms   : [ '$1' | '$3'].
+
+atom -> string : get_value_atom('$1').
 
 Erlang code.
 
