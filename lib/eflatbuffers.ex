@@ -8,6 +8,13 @@ defmodule Eflatbuffers do
     Eflatbuffers.Schema.parse(schema_str)
   end
 
+  def parse_schema!(schema_str) do
+    case parse_schema(schema_str) do
+      {:ok, schema}   -> schema
+      error           -> throw error
+    end
+  end
+
   def write_fb(map, schema_str) when is_binary(schema_str) do
     case parse_schema(schema_str) do
       {:ok, schema} -> write_fb(map, schema)
