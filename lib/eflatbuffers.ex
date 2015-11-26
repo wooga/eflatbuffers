@@ -41,6 +41,8 @@ defmodule Eflatbuffers do
   def write_fb(map, schema) do
     try do
       {:ok, write_fb!(map, schema)}
+    catch
+      error -> error
     rescue
       error -> {:error, error}
     end
@@ -64,6 +66,8 @@ defmodule Eflatbuffers do
   def read_fb(data, schema) do
     try do
       {:ok, read_fb!(data, schema)}
+    catch
+      error -> error
     rescue
       error -> {:error, error}
     end
