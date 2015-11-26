@@ -291,7 +291,7 @@ defmodule Eflatbuffers do
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema, %{})
   end
 
-  def read_table_fields([], _, _, _, _, map) do
+  def read_table_fields(_, <<>>, _, _, _, map) do
     map
   end
 

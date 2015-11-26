@@ -1,0 +1,8 @@
+table table_a
+{
+  field_a:short;
+  field_b:short;
+  field_c:short;
+}
+root_type table_a;
+

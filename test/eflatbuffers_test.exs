@@ -108,6 +108,14 @@ defmodule EflatbuffersTest do
     assert_full_circle(:simple_table, map)
   end
 
+  test "read simple table with extended schema" do
+    map = %{
+      field_a: 42,
+      field_b: 23,
+    }
+    assert_full_circle(:simple_table_plus, :simple_table, map)
+  end
+
   test "read table with missing values" do
     map = %{}
     assert_full_circle(:simple_table, map)
@@ -232,7 +240,6 @@ defmodule EflatbuffersTest do
   end
 
   test "commands fb" do
-    {:ok, schema} = Eflatbuffers.Schema.parse(load_schema({:doge, :commands}))
     maps = [
       %{data_type: "RefineryStartedCommand",  data: %{} },
       %{data_type: "CraftingFinishedCommand", data: %{} },
@@ -272,12 +279,15 @@ defmodule EflatbuffersTest do
   end
 
   def assert_full_circle(schema_type, map) do
-    schema_ex = Eflatbuffers.Schema.parse!(load_schema(schema_type))
+    assert_full_circle(schema_type, schema_type, map)
+  end
+  def assert_full_circle(schema_type_ex, schema_type_fc, map) do
+    schema_ex = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
 
     fb_ex     = Eflatbuffers.write_fb!(map, schema_ex)
-    map_ex_flatc = reference_map(schema_type, :erlang.iolist_to_binary(fb_ex))
+    map_ex_flatc = reference_map(schema_type_fc, :erlang.iolist_to_binary(fb_ex))
 
-    fb_flatc     = reference_fb(schema_type, map)
+    fb_flatc     = reference_fb(schema_type_fc, map)
     map_flatc_ex = Eflatbuffers.read_fb!(fb_flatc, schema_ex)
 
     assert round_floats(map_ex_flatc) == round_floats(map_flatc_ex)
