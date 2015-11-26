@@ -6,6 +6,7 @@
 * scalars
 * strings
 * vectors
+* unions
 * json -> fb
 * fb   -> json
 * enumerables
@@ -18,7 +19,6 @@
 
 ## pending features
 
-* unions
 * defaults
 * random access
 * shared strings
