@@ -8,13 +8,6 @@ defmodule Eflatbuffers.Schema do
     :long,  :ulong, :double,
   ]
 
-  def lexer(schema_str) do
-    {:ok, tokens, _} =
-      to_char_list(schema_str)
-      |> :schema_lexer.string
-    tokens
-  end
-
   def parse(schema_str) when is_binary(schema_str) do
     tokens = lexer(schema_str)
     case :schema_parser.parse(tokens) do
@@ -23,6 +16,13 @@ defmodule Eflatbuffers.Schema do
       error ->
         error
     end
+  end
+
+  def lexer(schema_str) do
+    {:ok, tokens, _} =
+      to_char_list(schema_str)
+      |> :schema_lexer.string
+    tokens
   end
 
   def correlate({entities, options}) do

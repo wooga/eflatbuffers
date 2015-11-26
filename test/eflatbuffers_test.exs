@@ -1,5 +1,6 @@
 defmodule EflatbuffersTest do
   use ExUnit.Case
+  import TestHelpers
   doctest Eflatbuffers
 
   def before_test do
@@ -108,10 +109,10 @@ defmodule EflatbuffersTest do
       my_double: 3.141593,
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:all_my_scalars, map, reply)
     # reading
-    assert(Map.merge(map, %{my_float: 3.124000072479248}) == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert({:ok, Map.merge(map, %{my_float: 3.124000072479248})} == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "read simple table" do
@@ -126,10 +127,10 @@ defmodule EflatbuffersTest do
       field_b: 23,
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:simple_table, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "read table with missing values" do
@@ -142,12 +143,12 @@ defmodule EflatbuffersTest do
     schema = { %{table_a: table}, %{root_type: :table_a} }
     map = %{}
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     # reading
     assert_eq(:simple_table, map, reply)
     # flatc sets the internal defaults
     # for scalars
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "table with scalar vector" do
@@ -160,10 +161,10 @@ defmodule EflatbuffersTest do
       int_vector: [23, 42, 666],
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:int_vector, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "table with string vector" do
@@ -176,10 +177,10 @@ defmodule EflatbuffersTest do
       string_vector: ["foo", "bar", "baz"],
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:string_vector, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "table with enum" do
@@ -194,10 +195,10 @@ defmodule EflatbuffersTest do
       enum_field: "Green",
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:enum_field, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "vector of enum" do
@@ -212,8 +213,8 @@ defmodule EflatbuffersTest do
       enum_fields: ["Red", "Green", "Blue"]
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    reply = Eflatbuffers.write_fb!(map, schema)
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
     # reading
   end
 
@@ -226,10 +227,10 @@ defmodule EflatbuffersTest do
     json = reference_json(:union_field, fb)
     # writing
     {:ok, schema}  = Eflatbuffers.Schema.parse(load_schema(:union_field))
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:union_field, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "table with table vector" do
@@ -246,10 +247,10 @@ defmodule EflatbuffersTest do
       inner: [%{value_inner: "aaa"}, %{value_inner: "bbbb"}, %{value_inner: "ccc"}],
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:table_vector, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "complex table with table vector" do
@@ -271,10 +272,10 @@ defmodule EflatbuffersTest do
         ]}]
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     #assert_eq(:table_vector, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "nested vectors (not supported by flatc)" do
@@ -287,8 +288,8 @@ defmodule EflatbuffersTest do
       the_vector: [[1,2,3],[4,5,6]],
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    reply = Eflatbuffers.write_fb!(map, schema)
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "fb with string" do
@@ -303,18 +304,18 @@ defmodule EflatbuffersTest do
       my_bool: true,
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:string_table, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "config debug fb" do
     {:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config_path))
     map = %{technologies: [%{category: "aaa"}, %{}]}
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    reply = Eflatbuffers.write_fb!(map, schema)
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
     assert_eq(:config_path, map, reply)
     # reading
   end
@@ -323,12 +324,12 @@ defmodule EflatbuffersTest do
     {:ok, schema} = Eflatbuffers.Schema.parse(load_schema({:doge, :config}))
     map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
-    reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
+    reply_map  = Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema)
 
     assert round_floats(map) == round_floats(reply_map)
 
-    looped_fb = Eflatbuffers.write_fb(reply_map, schema)
+    looped_fb = Eflatbuffers.write_fb!(reply_map, schema)
     assert looped_fb == reply
 
     assert_eq({:doge, :config}, map, reply)
@@ -346,12 +347,12 @@ defmodule EflatbuffersTest do
       fn(map) ->
 
         # writing
-        reply = Eflatbuffers.write_fb(map, schema)
-        reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
+        reply = Eflatbuffers.write_fb!(map, schema)
+        reply_map  = Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema)
 
         assert round_floats(map) == round_floats(reply_map)
 
-        looped_fb = Eflatbuffers.write_fb(reply_map, schema)
+        looped_fb = Eflatbuffers.write_fb!(reply_map, schema)
         assert looped_fb == reply
 
         assert_eq({:doge, :commands}, map, reply)
@@ -370,10 +371,10 @@ defmodule EflatbuffersTest do
       my_bool: true,
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:string_table, map, reply)
     # reading
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "read nested table" do
@@ -393,10 +394,10 @@ defmodule EflatbuffersTest do
       inner: %{ value_inner: 23 }
     }
     # writing
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     # reading
     assert_eq(:nested, map, reply)
-    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
 
   test "write fb" do
@@ -408,13 +409,13 @@ defmodule EflatbuffersTest do
         {:my_omitted_bool, :bool}
     ]}
     schema = {%{table_a: table}, %{root_type: :table_a}}
-    reply = Eflatbuffers.write_fb(map, schema)
+    reply = Eflatbuffers.write_fb!(map, schema)
     assert_eq(:table_bool_string_string, map, reply)
   end
 
   test "file identifier" do
     schema = {%{foo: {:table, [a: :bool]}}, %{root_type: :foo, file_identifier: "helo"}}
-    reply = Eflatbuffers.write_fb(%{}, schema)
+    reply = Eflatbuffers.write_fb!(%{}, schema)
     assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
   end
 
@@ -454,14 +455,6 @@ defmodule EflatbuffersTest do
       3000 ->
         :timeout
     end
-  end
-
-  def load_schema({:doge, type}) do
-    File.read!("test/doge_schemas/" <> Atom.to_string(type) <> ".fbs")
-  end
-
-  def load_schema(type) do
-     File.read!("test/schemas/" <> Atom.to_string(type) <> ".fbs")
   end
 
   def flush_port_commands do
