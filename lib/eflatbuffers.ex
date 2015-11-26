@@ -275,7 +275,7 @@ defmodule Eflatbuffers do
     << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(32), _ :: binary >> = data
     table_pointer = table_pointer_pointer + table_offset
     {:table, fields} = Map.get(tables, table_name)
-    << _ :: binary-size(table_pointer), vtable_offset :: little-size(32), _ :: binary >> = data
+    << _ :: binary-size(table_pointer), vtable_offset :: little-signed-size(32), _ :: binary >> = data
     vtable_pointer = table_pointer - vtable_offset
     << _ :: binary-size(table_pointer), inspect :: binary >> = data
     << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _data_buffer_length :: little-size(16), _ :: binary >> = data
