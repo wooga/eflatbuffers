@@ -8,13 +8,6 @@ defmodule Eflatbuffers.Schema do
     :long,  :ulong, :double,
   ]
 
-  def lexer(schema_str) do
-    {:ok, tokens, _} =
-      to_char_list(schema_str)
-      |> :schema_lexer.string
-    tokens
-  end
-
   def parse(schema_str) when is_binary(schema_str) do
     tokens = lexer(schema_str)
     case :schema_parser.parse(tokens) do
@@ -25,42 +18,49 @@ defmodule Eflatbuffers.Schema do
     end
   end
 
+  def lexer(schema_str) do
+    {:ok, tokens, _} =
+      to_char_list(schema_str)
+      |> :schema_lexer.string
+    tokens
+  end
+
   def correlate({entities, options}) do
     entities_corr =
-    Enum.reduce(
-      entities,
-      %{},
-      # for a tables we transform
-      # the types to explicityl signify
-      # vectors, tables, and enums
-      fn({key, {:table, fields}}, acc) ->
-        Map.put(
-          acc,
-          key,
-          {
-            :table,
-            Enum.map(fields,
-            fn({field_name, field_value}) -> {field_name, substitute_field(field_value, entities)} end)
-          }
-        )
-        # for enums we change the list of options
-        # into a map for faster lookup when
-        # writing and reading
-        ({key, {{:enum, type}, fields}}, acc) ->
-          hash = Enum.reduce(
-            Enum.with_index(fields),
-            %{},
-            fn({field, index}, hash_acc) ->
-              Map.put(hash_acc, field, index) |> Map.put(index, field)
-            end
+      Enum.reduce(
+        entities,
+        %{},
+        # for a tables we transform
+        # the types to explicityl signify
+        # vectors, tables, and enums
+        fn({key, {:table, fields}}, acc) ->
+          Map.put(
+            acc,
+            key,
+            {
+              :table,
+              Enum.map(fields,
+              fn({field_name, field_value}) -> {field_name, substitute_field(field_value, entities)} end)
+            }
           )
-          Map.put(acc, key, {{:enum, type}, hash})
-        # for scalars we keep
-        # things as they are
-        ({key, other}, acc) ->
-          Map.put(acc, key, other)
-      end
-    )
+          # for enums we change the list of options
+          # into a map for faster lookup when
+          # writing and reading
+          ({key, {{:enum, type}, fields}}, acc) ->
+            hash = Enum.reduce(
+              Enum.with_index(fields),
+              %{},
+              fn({field, index}, hash_acc) ->
+                Map.put(hash_acc, field, index) |> Map.put(index, field)
+              end
+            )
+            Map.put(acc, key, {{:enum, type}, hash})
+          # for scalars we keep
+          # things as they are
+          ({key, other}, acc) ->
+            Map.put(acc, key, other)
+        end
+      )
     {entities_corr, options}
   end
 
