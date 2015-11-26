@@ -8,6 +8,15 @@ defmodule Eflatbuffers.Schema do
     :long,  :ulong, :double,
   ]
 
+  def parse!(schema_str) do
+    case parse(schema_str) do
+      {:ok, schema} ->
+        schema
+      {:error, error} ->
+        throw({:error, error})
+    end
+  end
+
   def parse(schema_str) when is_binary(schema_str) do
     tokens = lexer(schema_str)
     case :schema_parser.parse(tokens) do

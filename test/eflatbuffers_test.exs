@@ -8,7 +8,7 @@ defmodule EflatbuffersTest do
   end
 
   test "creating test data" do
-    expected = {:ok, <<12, 0, 0, 0, 8, 0, 8, 0, 6, 0, 0, 0, 8, 0, 0, 0, 0, 0, 17, 0>>}
+    expected = <<12, 0, 0, 0, 8, 0, 8, 0, 6, 0, 0, 0, 8, 0, 0, 0, 0, 0, 17, 0>>
     assert expected == reference_fb(:simple_table, %{field_a: 17})
   end
 
@@ -66,6 +66,8 @@ defmodule EflatbuffersTest do
     )
   end
 
+  ### intermediate data
+
   test "data buffer" do
     data_buffer =  [
       [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, []],
@@ -79,22 +81,9 @@ defmodule EflatbuffersTest do
     assert( data_buffer == reply)
   end
 
+  ### complete flatbuffer binaries
+
   test "table of scalars" do
-    table = {:table,
-      [
-        my_byte: :byte,
-        my_ubyte: :ubyte,
-        my_bool: :bool,
-        my_short: :short,
-        my_ushort: :ushort,
-        my_int: :int,
-        my_uint: :uint,
-        my_float: :float,
-        my_long: :long,
-        my_ulong: :ulong,
-        my_double: :double,
-      ]}
-    schema = { %{scalars: table}, %{root_type: :scalars} }
     map = %{
       my_byte: 66,
       my_ubyte: 200,
@@ -108,97 +97,41 @@ defmodule EflatbuffersTest do
       my_ulong: 10000000,
       my_double: 3.141593,
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:all_my_scalars, map, reply)
-    # reading
-    assert({:ok, Map.merge(map, %{my_float: 3.124000072479248})} == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:all_my_scalars, map)
   end
 
   test "read simple table" do
-    table = {:table,
-      [
-        field_a: :short,
-        field_b: :short,
-      ]}
-    schema = { %{table_a: table}, %{root_type: :table_a} }
     map = %{
       field_a: 42,
       field_b: 23,
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:simple_table, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:simple_table, map)
   end
 
   test "read table with missing values" do
-    table = {:table,
-      [
-        field_a: :short,
-        field_b: :string,
-        #field_c: {:table, :table_a}
-      ]}
-    schema = { %{table_a: table}, %{root_type: :table_a} }
     map = %{}
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    # reading
-    assert_eq(:simple_table, map, reply)
-    # flatc sets the internal defaults
-    # for scalars
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:simple_table, map)
   end
 
   test "table with scalar vector" do
-    table = {:table,
-      [
-        int_vector: {:vector, :int},
-      ]}
-    schema = { %{table_a: table}, %{root_type: :table_a} }
     map = %{
       int_vector: [23, 42, 666],
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:int_vector, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:int_vector, map)
   end
 
   test "table with string vector" do
-    table = {:table,
-      [
-        string_vector: {:vector, :string},
-      ]}
-    schema = { %{string_vector_table: table},  %{root_type: :string_vector_table} }
     map = %{
       string_vector: ["foo", "bar", "baz"],
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:string_vector, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:string_vector, map)
   end
 
   test "table with enum" do
-    tables = %{
-      :enum_inner =>
-        {{:enum, :int}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
-      :table_outer =>
-        {:table, [enum_field: {:enum, :enum_inner}]}
-    }
-    schema = { tables, %{root_type: :table_outer} }
     map = %{
       enum_field: "Green",
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:enum_field, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:enum_field, map)
   end
 
   test "vector of enum" do
@@ -215,7 +148,6 @@ defmodule EflatbuffersTest do
     # writing
     reply = Eflatbuffers.write_fb!(map, schema)
     assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
-    # reading
   end
 
   test "table with union" do
@@ -223,34 +155,14 @@ defmodule EflatbuffersTest do
       data: %{greeting: 42},
       data_type: "bye",
     }
-    {:ok, fb}   = reference_fb(:union_field, map)
-    json = reference_json(:union_field, fb)
-    # writing
-    {:ok, schema}  = Eflatbuffers.Schema.parse(load_schema(:union_field))
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:union_field, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:union_field, map)
   end
 
   test "table with table vector" do
-    outer_table = {:table,
-      [
-        inner: {:vector, {:table, :inner}},
-      ]}
-    inner_table = {:table,
-      [
-        value_inner: :string,
-      ]}
-    schema = { %{outer: outer_table, inner: inner_table}, %{root_type: :outer} }
     map = %{
-      inner: [%{value_inner: "aaa"}, %{value_inner: "bbbb"}, %{value_inner: "ccc"}],
+      inner: [%{value_inner: "aaa"}],
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:table_vector, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:table_vector, map)
   end
 
   test "complex table with table vector" do
@@ -273,7 +185,6 @@ defmodule EflatbuffersTest do
     }
     # writing
     reply = Eflatbuffers.write_fb!(map, schema)
-    #assert_eq(:table_vector, map, reply)
     # reading
     assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
   end
@@ -293,31 +204,16 @@ defmodule EflatbuffersTest do
   end
 
   test "fb with string" do
-    table = {:table,
-      [
-        my_string: :string,
-        my_bool: :bool,
-      ]}
-    schema = { %{string_table: table}, %{root_type: :string_table} }
     map = %{
       my_string: "hello",
       my_bool: true,
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:string_table, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:string_table, map)
   end
 
   test "config debug fb" do
-    {:ok, schema} = Eflatbuffers.Schema.parse(load_schema(:config_path))
     map = %{technologies: [%{category: "aaa"}, %{}]}
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
-    assert_eq(:config_path, map, reply)
-    # reading
+    assert_full_circle(:config_path, map)
   end
 
   test "config fb" do
@@ -344,79 +240,47 @@ defmodule EflatbuffersTest do
     ]
     Enum.each(
       maps,
-      fn(map) ->
-
-        # writing
-        reply = Eflatbuffers.write_fb!(map, schema)
-        reply_map  = Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema)
-
-        assert round_floats(map) == round_floats(reply_map)
-
-        looped_fb = Eflatbuffers.write_fb!(reply_map, schema)
-        assert looped_fb == reply
-
-        assert_eq({:doge, :commands}, map, reply)
-      end
+      fn(map) -> assert_full_circle({:doge, :commands}, map) end
     )
   end
 
   test "fb with string" do
-    table = {:table,
-      [
-        my_mood: "good",
-      ]}
-    schema = { %{string_table: table}, %{root_type: :string_table} }
     map = %{
       my_string: "hello",
       my_bool: true,
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:string_table, map, reply)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:string_table, map)
   end
 
   test "read nested table" do
-    outer = {:table,
-      [
-        value_outer: :short,
-        inner: {:table, :inner},
-      ]}
-
-    inner = {:table,
-      [
-        value_inner: :short,
-      ]}
-    schema = { %{outer: outer, inner: inner}, %{root_type: :outer} }
     map = %{
       value_outer: 42,
       inner: %{ value_inner: 23 }
     }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    # reading
-    assert_eq(:nested, map, reply)
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    assert_full_circle(:nested, map)
   end
 
   test "write fb" do
     map = %{my_bool: true, my_string: "max", my_second_string: "minimum"}
-    table = {:table, [
-        {:my_bool, :bool},
-        {:my_string, :string},
-        {:my_second_string, :string},
-        {:my_omitted_bool, :bool}
-    ]}
-    schema = {%{table_a: table}, %{root_type: :table_a}}
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert_eq(:table_bool_string_string, map, reply)
+    assert_full_circle(:table_bool_string_string, map)
   end
 
   test "file identifier" do
     schema = {%{foo: {:table, [a: :bool]}}, %{root_type: :foo, file_identifier: "helo"}}
     reply = Eflatbuffers.write_fb!(%{}, schema)
     assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
+  end
+
+  def assert_full_circle(schema_type, map) do
+    schema_ex = Eflatbuffers.Schema.parse!(load_schema(schema_type))
+
+    fb_ex     = Eflatbuffers.write_fb!(map, schema_ex)
+    map_ex_flatc = reference_map(schema_type, :erlang.iolist_to_binary(fb_ex))
+
+    fb_flatc     = reference_fb(schema_type, map)
+    map_flatc_ex = Eflatbuffers.read_fb!(fb_flatc, schema_ex)
+
+    assert round_floats(map_ex_flatc) == round_floats(map_flatc_ex)
   end
 
   def assert_eq(schema, map, binary) do
@@ -430,7 +294,8 @@ defmodule EflatbuffersTest do
     :true = FlatbufferPort.load_schema(port, load_schema(schema))
     :ok   = port_response(port)
     :true = FlatbufferPort.json_to_fb(port, json)
-    port_response(port)
+    {:ok, reply} = port_response(port)
+    reply
   end
 
   def reference_json(schema, data) when is_binary(data) do

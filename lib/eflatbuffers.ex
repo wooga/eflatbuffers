@@ -14,10 +14,10 @@ defmodule Eflatbuffers do
       error           -> throw error
     end
   end
-  
+
   def write_fb!(map, schema_str) when is_binary(schema_str) do
     write_fb!(map, parse_schema!(schema_str))
-  end  
+  end
 
   def write_fb!(map, {_, %{root_type: root_type} = options} = schema) do
     root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, schema)
@@ -72,7 +72,7 @@ defmodule Eflatbuffers do
       error -> {:error, error}
     end
   end
-  
+
   ##############################################################################
   ## private
   ##############################################################################
