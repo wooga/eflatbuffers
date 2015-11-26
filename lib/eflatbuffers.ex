@@ -14,15 +14,12 @@ defmodule Eflatbuffers do
       error           -> throw error
     end
   end
+  
+  def write_fb!(map, schema_str) when is_binary(schema_str) do
+    write_fb!(map, parse_schema!(schema_str))
+  end  
 
-  def write_fb(map, schema_str) when is_binary(schema_str) do
-    case parse_schema(schema_str) do
-      {:ok, schema} -> write_fb(map, schema)
-      error         -> error
-    end
-  end
-
-  def write_fb(map, {_, %{root_type: root_type} = options} = schema) do
+  def write_fb!(map, {_, %{root_type: root_type} = options} = schema) do
     root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, schema)
 
     file_identifier =
@@ -34,12 +31,52 @@ defmodule Eflatbuffers do
     [<< (vtable_offset + 8) :: little-size(32) >>, file_identifier, root_table]
   end
 
-  def read_fb(data, {_, %{root_type: root_type}} = schema) do
+  def write_fb(map, schema_str) when is_binary(schema_str) do
+    case parse_schema(schema_str) do
+      {:ok, schema} -> write_fb(map, schema)
+      error         -> error
+    end
+  end
+
+  def write_fb(map, schema) do
+    try do
+      {:ok, write_fb!(map, schema)}
+    rescue
+      error -> {:error, error}
+    end
+  end
+
+  def read_fb!(data, schema_str) when is_binary(schema_str) do
+    read_fb!(data, parse_schema!(schema_str))
+  end
+
+  def read_fb!(data, {_, %{root_type: root_type}} = schema) do
     read({:table, root_type}, 0, data, schema)
+  end
+
+  def read_fb(data, schema_str) when is_binary(schema_str) do
+    case parse_schema(schema_str) do
+      {:ok, schema} -> read_fb(data, schema)
+      error         -> error
+    end
+  end
+
+  def read_fb(data, schema) do
+    try do
+      {:ok, read_fb!(data, schema)}
+    rescue
+      error -> {:error, error}
+    end
   end
   
   ##############################################################################
   ## private
+  ##############################################################################
+
+  defp parse_and_execute(schema)
+
+  ##############################################################################
+  ## todo: move to seperate module
   ##############################################################################
 
   def write(_, nil, _) do
