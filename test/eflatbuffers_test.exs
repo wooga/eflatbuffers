@@ -217,6 +217,21 @@ defmodule EflatbuffersTest do
     # reading
   end
 
+  test "table with union" do
+    map = %{
+      data: %{greeting: 42},
+      data_type: "bye",
+    }
+    {:ok, fb}   = reference_fb(:union_field, map)
+    json = reference_json(:union_field, fb)
+    # writing
+    {:ok, schema}  = Eflatbuffers.Schema.parse(load_schema(:union_field))
+    reply = Eflatbuffers.write_fb(map, schema)
+    assert_eq(:union_field, map, reply)
+    # reading
+    assert(map == Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema))
+  end
+
   test "table with table vector" do
     outer_table = {:table,
       [
@@ -317,6 +332,31 @@ defmodule EflatbuffersTest do
     assert looped_fb == reply
 
     assert_eq({:doge, :config}, map, reply)
+  end
+
+  test "commands fb" do
+    {:ok, schema} = Eflatbuffers.Schema.parse(load_schema({:doge, :commands}))
+    maps = [
+      %{data_type: "RefineryStartedCommand",  data: %{} },
+      %{data_type: "CraftingFinishedCommand", data: %{} },
+      %{data_type: "MoveBuildingCommand",     data: %{from: %{x: 23, y: 11}, to: %{x: 42, y: -1}} },
+    ]
+    Enum.each(
+      maps,
+      fn(map) ->
+
+        # writing
+        reply = Eflatbuffers.write_fb(map, schema)
+        reply_map  = Eflatbuffers.read_fb(:erlang.iolist_to_binary(reply), schema)
+
+        assert round_floats(map) == round_floats(reply_map)
+
+        looped_fb = Eflatbuffers.write_fb(reply_map, schema)
+        assert looped_fb == reply
+
+        assert_eq({:doge, :commands}, map, reply)
+      end
+    )
   end
 
   test "fb with string" do

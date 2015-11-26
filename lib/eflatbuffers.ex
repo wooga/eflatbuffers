@@ -151,6 +151,21 @@ defmodule Eflatbuffers do
     is_scalar = scalar?(type)
     read_vector_elements(type, is_scalar, vector_pointer + 4, vector_count, data, schema)
   end
+  def read_vector_elements(_, _, _, 0, _, _) do
+    []
+  end
+
+  def read_vector_elements(type, true, vector_pointer, vector_count, data, schema) do
+    value  = read(type, vector_pointer, data, schema)
+    offset = scalar_size(extract_scalar_type(type, schema))
+    [value | read_vector_elements(type, true, vector_pointer + offset, vector_count - 1, data, schema)]
+  end
+
+  def read_vector_elements(type, false, vector_pointer, vector_count, data, schema) do
+    value  = read(type, vector_pointer, data, schema)
+    offset = 4
+    [value | read_vector_elements(type, false, vector_pointer + offset, vector_count - 1, data, schema)]
+  end
 
   def write({:enum, enum_name}, value, {tables, _} = schema) when is_binary(value) do
     {{:enum, type}, options} =  Map.get(tables, enum_name)
@@ -169,30 +184,22 @@ defmodule Eflatbuffers do
     Atom.to_string(value_atom)
   end
 
-  def read_vector_elements(_, _, _, 0, _, _) do
-    []
-  end
-
-  def read_vector_elements(type, true, vector_pointer, vector_count, data, schema) do
-    value  = read(type, vector_pointer, data, schema)
-    offset = scalar_size(extract_scalar_type(type, schema))
-    [value | read_vector_elements(type, true, vector_pointer + offset, vector_count - 1, data, schema)]
-  end
-
-  def read_vector_elements(type, false, vector_pointer, vector_count, data, schema) do
-    value  = read(type, vector_pointer, data, schema)
-    offset = 4
-    [value | read_vector_elements(type, false, vector_pointer + offset, vector_count - 1, data, schema)]
-  end
-
-
   # write a complete table
   def write({:table, table_name}, map, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
     {:table, fields}    = Map.get(tables, table_name)
     {types, values}     = Enum.reduce(
       Enum.reverse(fields),
       {[], []},
-      fn({name, type}, {type_acc, value_acc}) -> {[type | type_acc], [Map.get(map, name) | value_acc]} end
+      fn({name, {:union, union_name}}, {type_acc, value_acc}) ->
+          {:union, union_options} = Map.get(tables, union_name)
+          union_type              = Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) |> String.to_atom
+          union_index             = Map.get(union_options, union_type)
+          type_acc_new  = [:byte           | [{:table, union_type} | type_acc]]
+          value_acc_new = [union_index + 1 | [Map.get(map, name)   | value_acc]]
+          {type_acc_new, value_acc_new}
+        ({name, type}, {type_acc, value_acc}) ->
+          {[type | type_acc], [Map.get(map, name) | value_acc]}
+      end
     )
     [data_buffer, data] = data_buffer_and_data(types, values, schema)
     vtable              = vtable(data_buffer)
@@ -227,6 +234,15 @@ defmodule Eflatbuffers do
     map
   end
 
+  def read_table_fields([{name, {:union, union_type}} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, {tables, _options} = schema, map) do
+    # for a union an int field named $fieldname$_type is prefixed
+    union_index = read(:byte, data_buffer_pointer + data_offset, data, schema)
+    {:union, options} = Map.get(tables, union_type)
+    union_type        = Map.get(options, union_index - 1)
+    union_type_key    = String.to_atom(Atom.to_string(name) <> "_type")
+    map_new           = Map.put(map, union_type_key, Atom.to_string(union_type))
+    read_table_fields([{name, {:table, union_type}} | fields], vtable, data_buffer_pointer, data, schema, map_new)
+  end
   # we find a null pointer
   # so we don't set the value
   def read_table_fields([{_, _} | fields], << 0, 0, vtable :: binary >>, data_buffer_pointer, data, schema, map) do

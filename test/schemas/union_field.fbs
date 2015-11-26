@@ -1,0 +1,18 @@
+file_identifier "cmnd";
+
+table hello
+{
+  salute:string;
+}
+
+table bye
+{
+  greeting:int;
+}
+union command { hello, bye }
+
+table command_root {
+  data:command;
+}
+
+root_type command_root;

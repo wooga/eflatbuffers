@@ -127,6 +127,22 @@ defmodule Eflatbuffers.SchemaTest do
     assert {correlated_entities, %{}} == Eflatbuffers.Schema.correlate({parsed_entities, %{}})
   end
 
+  test "correlate union" do
+    parsed_entities = %{
+      :union_inner =>
+        {:union, [:hello, :bye]},
+      :table_outer =>
+        {:table, [union_field: :union_inner, union_vector: {:vector, :union_inner}]}
+    }
+    correlated_entities = %{
+      :union_inner =>
+        {:union, %{0 => :hello, 1 => :bye, :bye => 1, :hello => 0}},
+      :table_outer =>
+        {:table, [union_field: {:union, :union_inner}, union_vector: {:vector, {:union, :union_inner}}]}
+    }
+    assert {correlated_entities, %{}} == Eflatbuffers.Schema.correlate({parsed_entities, %{}})
+  end
+
   test "parse doge schemas" do
     File.ls!("test/doge_schemas")
     |> Enum.filter(fn(file) -> String.contains?(file, ".fbs") end)

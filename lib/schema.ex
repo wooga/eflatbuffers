@@ -55,6 +55,15 @@ defmodule Eflatbuffers.Schema do
             end
           )
           Map.put(acc, key, {{:enum, type}, hash})
+        ({key, {:union, fields}}, acc) ->
+          hash = Enum.reduce(
+            Enum.with_index(fields),
+            %{},
+            fn({field, index}, hash_acc) ->
+              Map.put(hash_acc, field, index) |> Map.put(index, field)
+            end
+          )
+          Map.put(acc, key, {:union, hash})
         # for scalars we keep
         # things as they are
         ({key, other}, acc) ->
