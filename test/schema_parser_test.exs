@@ -29,7 +29,8 @@ defmodule Eflatbuffers.SchemaTest do
   }
 
   @expected_enum %{:Color =>
-    {{:enum, :byte},
+    {
+      {:enum, :byte},
       [
         :Red,
         :Green,
