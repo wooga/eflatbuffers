@@ -1,4 +1,4 @@
-defmodule Eflatbuffer.Generator do
+defmodule Eflatbuffers.Generator do
 
   @max_string_len 50
   @max_vector_len 10
@@ -47,7 +47,7 @@ defmodule Eflatbuffer.Generator do
 
   def gen_type(schema, {:table, types}) do
     types
-    |> Enum.map(fn({name, type}) -> {Atom.to_string(name), gen_type(schema, type)} end)
+    |> Enum.map(fn({name, type}) -> {name, gen_type(schema, type)} end)
     |> Enum.into(%{})
   end
 
