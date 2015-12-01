@@ -287,16 +287,16 @@ defmodule EflatbuffersTest do
     map = %{foo: true, tables_field: [%{string_field: "hello"}]}
     assert_full_circle(:error, map)
 
-    map = %{tables_field: [%{}, %{string_field: 23}]}
-    assert {:error, {:wrong_type, :string, 23, [:tables_field, 1, :string_field]}} ==
+    map = %{foo: true, tables_field: [%{}, %{bar: 3, string_field: 23}]}
+    assert {:error, {:wrong_type, :string, 23, [{:tables_field}, [1], {:string_field}]}} ==
            catch_throw(Eflatbuffers.write_fb!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
 
-    map = %{tables_field: [%{}, "hoho!"]}
-    assert {:error, {:wrong_type, {:table, :inner_table}, "hoho!", [:tables_field, 1]}} ==
+    map = %{foo: true, tables_field: [%{}, "hoho!"]}
+    assert {:error, {:wrong_type, {:table, :inner_table}, "hoho!", [{:tables_field}, [1]]}} ==
            catch_throw(Eflatbuffers.write_fb!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
 
-    map = %{tables_field: 123}
-    assert {:error, {:wrong_type, {:vector, {:table, :inner_table}}, 123, [:tables_field]}} ==
+    map = %{foo: true, tables_field: 123}
+    assert {:error, {:wrong_type, {:vector, {:table, :inner_table}}, 123, [{:tables_field}]}} ==
            catch_throw(Eflatbuffers.write_fb!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
   end
 

@@ -201,7 +201,10 @@ defmodule Eflatbuffers do
 
   def write({:vector, type}, values, path, schema) when is_list(values) do
     vector_length = length(values)
-    index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {i, type}
+    # we are putting the indices as [i] as a type
+    # so if something goes wrong it's easy to see
+    # that it was a vector index
+    index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {[i], type}
     [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, schema) ]
   end
 
@@ -256,13 +259,16 @@ defmodule Eflatbuffers do
             {:union, union_options} = Map.get(tables, union_name)
             union_type              = Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) |> String.to_atom
             union_index             = Map.get(union_options, union_type)
-            type_acc_new  = [{name, :byte}   | [{name, {:table, union_type}} | type_acc]]
+            type_acc_new  = [{{name}, :byte}   | [{name, {:table, union_type}} | type_acc]]
             value_acc_new = [union_index + 1 | [Map.get(map, name)   | value_acc]]
             {type_acc_new, value_acc_new}
           ({name, type}, {type_acc, value_acc}) ->
-            {[{name, type} | type_acc], [Map.get(map, name) | value_acc]}
+            {[{{name}, type} | type_acc], [Map.get(map, name) | value_acc]}
         end
       )
+    # we are putting the keys as {key} as a type
+    # so if something goes wrong it's easy to see
+    # that it was a map key
     [data_buffer, data] = data_buffer_and_data(names_types, values, path, schema)
     vtable              = vtable(data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
@@ -357,15 +363,10 @@ defmodule Eflatbuffers do
     # for clean error reporting we
     # need to accumulate the names of tables (depth)
     # but not the indices for vectors (width)
-    recurse_path =
-      case is_integer(name) do
-        true  -> path
-        false -> [name|path]
-      end
     case scalar?(type) do
       true ->
         scalar_data = write(type, value, [name|path], schema)
-        data_buffer_and_data(types, values, recurse_path, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
+        data_buffer_and_data(types, values, path, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
       false ->
         complex_data = write(type, value, [name|path], schema)
         complex_data_length = :erlang.iolist_size(complex_data)
@@ -379,7 +380,7 @@ defmodule Eflatbuffers do
             _ ->
               data_offset
           end
-        data_buffer_and_data(types, values, recurse_path, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
+        data_buffer_and_data(types, values, path, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end
 

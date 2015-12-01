@@ -1,9 +1,10 @@
 table inner_table {
+  bar:int;
   string_field:string;
 }
 table root_table {
-  tables_field:[inner_table];
   foo:bool;
+  tables_field:[inner_table];
 }
 root_type root_table;
 
