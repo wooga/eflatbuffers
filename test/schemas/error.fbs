@@ -1,0 +1,9 @@
+table inner_table {
+  string_field:string;
+}
+table root_table {
+  tables_field:[inner_table];
+  foo:bool;
+}
+root_type root_table;
+

@@ -20,7 +20,7 @@ defmodule Eflatbuffers do
   end
 
   def write_fb!(map, {_, %{root_type: root_type} = options} = schema) do
-    root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, schema)
+    root_table = [<< vtable_offset :: little-size(16) >> | _] = write({:table, root_type}, map, [], schema)
 
     file_identifier =
       case Map.get(options, :file_identifier) do
@@ -77,15 +77,15 @@ defmodule Eflatbuffers do
   ## private
   ##############################################################################
 
-  def write(_, nil, _) do
+  def write(_, nil, _, _) do
     <<>>
   end
 
-  def write(:bool, true, _) do
+  def write(:bool, true, _, _) do
     << 1 >>
   end
 
-  def write(:bool, false, _) do
+  def write(:bool, false, _, _) do
     << 0 >>
   end
 
@@ -96,7 +96,7 @@ defmodule Eflatbuffers do
     end
   end
 
-  def write(:byte, byte, _) when is_integer(byte) and byte >= -128 and byte <= 127 do
+  def write(:byte, byte, _, _) when is_integer(byte) and byte >= -128 and byte <= 127 do
     << byte :: signed-size(8) >>
   end
 
@@ -105,7 +105,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:ubyte, byte, _) when is_integer(byte) and byte >= 0 and byte <= 255 do
+  def write(:ubyte, byte, _, _) when is_integer(byte) and byte >= 0 and byte <= 255 do
     << byte :: unsigned-size(8) >>
   end
 
@@ -114,7 +114,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:short, integer, _) when is_integer(integer) and integer <= 32_767 and integer >= -32_768 do
+  def write(:short, integer, _, _) when is_integer(integer) and integer <= 32_767 and integer >= -32_768 do
     << integer :: signed-little-size(16) >>
   end
 
@@ -123,7 +123,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:ushort, integer, _) when is_integer(integer) and integer >= 0 and integer <= 65536 do
+  def write(:ushort, integer, _, _) when is_integer(integer) and integer >= 0 and integer <= 65536 do
     << integer :: unsigned-little-size(16) >>
   end
 
@@ -132,7 +132,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:int, integer, _) when is_integer(integer) and integer >= -2_147_483_648 and integer <= 2_147_483_647 do
+  def write(:int, integer, _, _) when is_integer(integer) and integer >= -2_147_483_648 and integer <= 2_147_483_647 do
     << integer :: signed-little-size(32) >>
   end
 
@@ -141,7 +141,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:uint, integer, _) when is_integer(integer) and integer >= 0 and integer <= 4_294_967_295 do
+  def write(:uint, integer, _, _) when is_integer(integer) and integer >= 0 and integer <= 4_294_967_295 do
     << integer :: unsigned-little-size(32) >>
   end
 
@@ -150,7 +150,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:float, float, _) when (is_float(float) or is_integer(float)) and float >= -3.4E+38 and float <= +3.4E+38 do
+  def write(:float, float, _, _) when (is_float(float) or is_integer(float)) and float >= -3.4E+38 and float <= +3.4E+38 do
     << float :: float-little-size(32) >>
   end
 
@@ -159,7 +159,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:long, integer, _) when is_integer(integer) and integer >= -9_223_372_036_854_775_808 and integer <= 9_223_372_036_854_775_807 do
+  def write(:long, integer, _, _) when is_integer(integer) and integer >= -9_223_372_036_854_775_808 and integer <= 9_223_372_036_854_775_807 do
     << integer :: signed-little-size(64) >>
   end
 
@@ -168,7 +168,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:ulong, integer, _) when is_integer(integer) and integer >= 0 and integer <= 18_446_744_073_709_551_615 do
+  def write(:ulong, integer, _, _) when is_integer(integer) and integer >= 0 and integer <= 18_446_744_073_709_551_615 do
     << integer :: unsigned-little-size(64) >>
   end
 
@@ -177,7 +177,7 @@ defmodule Eflatbuffers do
     value
   end
 
-  def write(:double, float, _) when (is_float(float) or is_integer(float)) and float >= -1.7E+308 and float <= +1.7E+308 do
+  def write(:double, float, _, _) when (is_float(float) or is_integer(float)) and float >= -1.7E+308 and float <= +1.7E+308 do
     << float :: float-little-size(64) >>
   end
 
@@ -188,7 +188,7 @@ defmodule Eflatbuffers do
 
   # complex types
 
-  def write(:string, string, _) when is_binary(string) do
+  def write(:string, string, _, _) when is_binary(string) do
     << byte_size(string) :: unsigned-little-size(32) >> <> string
   end
 
@@ -199,10 +199,10 @@ defmodule Eflatbuffers do
     string
   end
 
-  def write({:vector, type}, values, schema) when is_list(values) do
+  def write({:vector, type}, values, path, schema) when is_list(values) do
     vector_length = length(values)
-    types = for _ <- :lists.seq(0, (vector_length - 1)), do: type
-    [ << vector_length :: little-size(32) >>, data_buffer_and_data(types, values, schema) ]
+    index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {i, type}
+    [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, schema) ]
   end
 
   def read({:vector, type}, vtable_pointer, data, schema) do
@@ -228,13 +228,13 @@ defmodule Eflatbuffers do
     [value | read_vector_elements(type, false, vector_pointer + offset, vector_count - 1, data, schema)]
   end
 
-  def write({:enum, enum_name}, value, {tables, _} = schema) when is_binary(value) do
+  def write({:enum, enum_name}, value, path, {tables, _} = schema) when is_binary(value) do
     {{:enum, type}, options} =  Map.get(tables, enum_name)
     value_atom = :erlang.binary_to_existing_atom(value, :utf8)
     index = Map.get(options, value_atom)
     case index do
       nil -> throw({:error, {:not_in_enum, value_atom, options}})
-      _   -> write(type, index, schema)
+      _   -> write(type, index, path, schema)
     end
   end
 
@@ -246,23 +246,24 @@ defmodule Eflatbuffers do
   end
 
   # write a complete table
-  def write({:table, table_name}, map, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
-    {:table, fields}    = Map.get(tables, table_name)
-    {types, values}     = Enum.reduce(
-      Enum.reverse(fields),
-      {[], []},
-      fn({name, {:union, union_name}}, {type_acc, value_acc}) ->
-          {:union, union_options} = Map.get(tables, union_name)
-          union_type              = Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) |> String.to_atom
-          union_index             = Map.get(union_options, union_type)
-          type_acc_new  = [:byte           | [{:table, union_type} | type_acc]]
-          value_acc_new = [union_index + 1 | [Map.get(map, name)   | value_acc]]
-          {type_acc_new, value_acc_new}
-        ({name, type}, {type_acc, value_acc}) ->
-          {[type | type_acc], [Map.get(map, name) | value_acc]}
-      end
-    )
-    [data_buffer, data] = data_buffer_and_data(types, values, schema)
+  def write({:table, table_name}, map, path, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
+    {:table, fields} = Map.get(tables, table_name)
+    {names_types, values} =
+      Enum.reduce(
+        Enum.reverse(fields),
+        {[], []},
+        fn({name, {:union, union_name}}, {type_acc, value_acc}) ->
+            {:union, union_options} = Map.get(tables, union_name)
+            union_type              = Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) |> String.to_atom
+            union_index             = Map.get(union_options, union_type)
+            type_acc_new  = [{name, :byte}   | [{name, {:table, union_type}} | type_acc]]
+            value_acc_new = [union_index + 1 | [Map.get(map, name)   | value_acc]]
+            {type_acc_new, value_acc_new}
+          ({name, type}, {type_acc, value_acc}) ->
+            {[{name, type} | type_acc], [Map.get(map, name) | value_acc]}
+        end
+      )
+    [data_buffer, data] = data_buffer_and_data(names_types, values, path, schema)
     vtable              = vtable(data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
     data_buffer_length  = << :erlang.iolist_size([springboard, data_buffer]) :: little-size(16) >>
@@ -323,12 +324,12 @@ defmodule Eflatbuffers do
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
   end
 
-  # fail of nothing matches
-  def write(type, data, _) do
-    throw({:error, {:wrong_type, type, data}})
+  # fail if nothing matches
+  def write(type, data, path, _) do
+    throw({:error, {:wrong_type, type, data, Enum.reverse(path)}})
   end
 
-  # fail of nothing matches
+  # fail if nothing matches
   def read(type, _, _, _) do
     throw({:error, {:unknown_type, type}})
   end
@@ -341,24 +342,32 @@ defmodule Eflatbuffers do
 
   # build up [data_buffer, data]
   # as part of a table or vector
-  def data_buffer_and_data(types, values, schema) do
-    data_buffer_and_data(types, values, schema, {[], [], 0})
+  def data_buffer_and_data(types, values, path, schema) do
+    data_buffer_and_data(types, values, path, schema, {[], [], 0})
   end
-  def data_buffer_and_data([], [], _schema, {data_buffer, data, _}) do
+  def data_buffer_and_data([], [], _path, _schema, {data_buffer, data, _}) do
     [adjust_for_length(data_buffer), Enum.reverse(data)]
   end
 
   # value is nil so we put a null pointer
-  def data_buffer_and_data([_type | types], [nil | values], schema, {scalar_and_pointers, data, data_offset}) do
-    data_buffer_and_data(types, values, schema, {[[] | scalar_and_pointers], data, data_offset})
+  def data_buffer_and_data([_type | types], [nil | values], path, schema, {scalar_and_pointers, data, data_offset}) do
+    data_buffer_and_data(types, values, path, schema, {[[] | scalar_and_pointers], data, data_offset})
   end
-  def data_buffer_and_data([type | types], [value | values], schema, {scalar_and_pointers, data, data_offset}) do
+  def data_buffer_and_data([{name, type} | types], [value | values], path, schema, {scalar_and_pointers, data, data_offset}) do
+    # for clean error reporting we
+    # need to accumulate the names of tables (depth)
+    # but not the indices for vectors (width)
+    recurse_path =
+      case is_integer(name) do
+        true  -> path
+        false -> [name|path]
+      end
     case scalar?(type) do
       true ->
-        scalar_data = write(type, value, schema)
-        data_buffer_and_data(types, values, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
+        scalar_data = write(type, value, [name|path], schema)
+        data_buffer_and_data(types, values, recurse_path, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
       false ->
-        complex_data = write(type, value, schema)
+        complex_data = write(type, value, [name|path], schema)
         complex_data_length = :erlang.iolist_size(complex_data)
         # for a table we do not point to the start but to the springboard
         data_pointer =
@@ -370,7 +379,7 @@ defmodule Eflatbuffers do
             _ ->
               data_offset
           end
-        data_buffer_and_data(types, values, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
+        data_buffer_and_data(types, values, recurse_path, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end
 

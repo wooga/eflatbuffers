@@ -19,13 +19,14 @@
 
 ## pending features
 
-* defaults
 * random access
+* validate file identifiers
 * shared strings
 * shared vtables
 
 ## not planned
 
+* includes
 * alignment
 * additional attributes
 * structs
