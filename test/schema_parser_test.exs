@@ -96,52 +96,52 @@ defmodule Eflatbuffers.SchemaTest do
     assert {:ok, {Map.merge(@expected_table, @expected_enum) |> Map.merge(@expected_union), @expected_simple}} == res
   end
 
-  test "correlate table" do
+  test "decorate table" do
     parsed_entities = %{
       :table_inner =>
         {:table, [field: :int, field_int_default: {:int, 23}]},
       :table_outer =>
         {:table, [table_field: :table_inner, table_vector: {:vector, :table_inner}]}
     }
-    correlated_entities = %{
+    decorated_entities = %{
       :table_inner =>
         {:table, [field: :int, field_int_default: {:int, 23}]},
       :table_outer =>
         {:table, [table_field: {:table, :table_inner}, table_vector: {:vector, {:table, :table_inner}}]}
     }
-    assert {correlated_entities, %{}} == Eflatbuffers.Schema.correlate({parsed_entities, %{}})
+    assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
 
-  test "correlate enumerable" do
+  test "decorate enumerable" do
     parsed_entities = %{
       :enum_inner =>
         {{:enum, :byte}, [:Red, :Green, :Blue]},
       :table_outer =>
         {:table, [enum_field: :enum_inner, enum_vector: {:vector, :enum_inner}]}
     }
-    correlated_entities = %{
+    decorated_entities = %{
       :enum_inner =>
         {{:enum, :byte}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
       :table_outer =>
         {:table, [enum_field: {:enum, :enum_inner}, enum_vector: {:vector, {:enum, :enum_inner}}]}
     }
-    assert {correlated_entities, %{}} == Eflatbuffers.Schema.correlate({parsed_entities, %{}})
+    assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
 
-  test "correlate union" do
+  test "decorate union" do
     parsed_entities = %{
       :union_inner =>
         {:union, [:hello, :bye]},
       :table_outer =>
         {:table, [union_field: :union_inner, union_vector: {:vector, :union_inner}]}
     }
-    correlated_entities = %{
+    decorated_entities = %{
       :union_inner =>
         {:union, %{0 => :hello, 1 => :bye, :bye => 1, :hello => 0}},
       :table_outer =>
         {:table, [union_field: {:union, :union_inner}, union_vector: {:vector, {:union, :union_inner}}]}
     }
-    assert {correlated_entities, %{}} == Eflatbuffers.Schema.correlate({parsed_entities, %{}})
+    assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
 
   test "parse doge schemas" do

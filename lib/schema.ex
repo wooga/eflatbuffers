@@ -21,7 +21,7 @@ defmodule Eflatbuffers.Schema do
     tokens = lexer(schema_str)
     case :schema_parser.parse(tokens) do
       {:ok, data} ->
-        {:ok, correlate(data)}
+        {:ok, decorate(data)}
       error ->
         error
     end
@@ -34,7 +34,12 @@ defmodule Eflatbuffers.Schema do
     tokens
   end
 
-  def correlate({entities, options}) do
+  # this preprocesses the schema
+  # in order to keep the read/write
+  # code as simple as possible
+  # correlate tables with names
+  # and define defaults explicitly
+  def decorate({entities, options}) do
     entities_corr =
     Enum.reduce(
       entities,
