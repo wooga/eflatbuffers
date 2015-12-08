@@ -8,14 +8,5 @@ table TechnologiesRoot
   technologies:[Technology];
 }
 
-table ConfigRoot
-{
-  academy_technologies:TechnologiesRoot;
-}
-
-table ConfigsRoot
-{
-  config:ConfigRoot;
-}
-
 root_type TechnologiesRoot;
+file_identifier "BBBB";
