@@ -17,6 +17,10 @@
 * nested vectors
 * vectors of enums
 
+## deviation from flatbuffers
+
+* default values are written to json
+
 ## pending features
 
 * random access

@@ -18,12 +18,30 @@ defmodule TestHelpers do
     schema_ex    = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
 
     fb_ex        = Eflatbuffers.write_fb!(map, schema_ex)
+IO.inspect {:schema_ex, schema_ex}, limit: 1000
+#IO.inspect {:fb_ex_ex,  Eflatbuffers.read_fb!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000
     map_ex_flatc = reference_map(schema_type_fc, :erlang.iolist_to_binary(fb_ex))
 
     fb_flatc     = reference_fb(schema_type_fc, map)
+# IO.inspect {:fb_flatc, :erlang.iolist_to_binary(fb_flatc)}, limit: 1000
+
     map_flatc_ex = Eflatbuffers.read_fb!(fb_flatc, schema_ex)
 
-    assert [] == compare(round_floats(map_ex_flatc), round_floats(map_flatc_ex))
+    diff = compare(round_floats(map_ex_flatc), round_floats(map_flatc_ex))
+    # since we write defaults to the json and flatc doesn't
+    # we have to account for that
+    diff = Enum.reduce(
+      diff,
+      [],
+      fn({path, {eflat, cflat}}, acc) ->
+          case {eflat, cflat} do
+            {0, :undefined} ->
+              acc
+            _ -> [{path, {eflat, cflat}} | acc]
+          end
+      end
+    )
+    assert [] == diff
   end
 
   def assert_eq(schema, map, binary) do
