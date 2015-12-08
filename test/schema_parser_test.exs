@@ -105,9 +105,11 @@ defmodule Eflatbuffers.SchemaTest do
     }
     decorated_entities = %{
       :table_inner =>
-        {:table, [field: :int, field_int_default: {:int, 23}]},
+        {:table, %{fields: [
+              {:field, {:int, %{ default: 0 }}}, {:field_int_default, {:int, %{ default: 23 }}}
+        ]}},
       :table_outer =>
-        {:table, [table_field: {:table, :table_inner}, table_vector: {:vector, {:table, :table_inner}}]}
+        {:table, %{ fields: [table_field: {:table, %{ name: :table_inner }}, table_vector: {:vector, %{ type: {:table, %{ name: :table_inner}}}}]}}
     }
     assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
@@ -120,10 +122,12 @@ defmodule Eflatbuffers.SchemaTest do
         {:table, [enum_field: :enum_inner, enum_vector: {:vector, :enum_inner}]}
     }
     decorated_entities = %{
-      :enum_inner =>
-        {{:enum, :byte}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
-      :table_outer =>
-        {:table, [enum_field: {:enum, :enum_inner}, enum_vector: {:vector, {:enum, :enum_inner}}]}
+        :enum_inner =>
+          {:enum, %{members: %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}, type: {:byte, %{ default: 0 }}}},
+        :table_outer =>
+          {:table,
+               %{fields: [enum_field: {:enum, %{name: :enum_inner}},
+                  enum_vector: {:vector, %{type: {:enum, %{name: :enum_inner}}}}]}}
     }
     assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
@@ -137,9 +141,9 @@ defmodule Eflatbuffers.SchemaTest do
     }
     decorated_entities = %{
       :union_inner =>
-        {:union, %{0 => :hello, 1 => :bye, :bye => 1, :hello => 0}},
+        {:union, %{ members: %{0 => :hello, 1 => :bye, :bye => 1, :hello => 0} }},
       :table_outer =>
-        {:table, [union_field: {:union, :union_inner}, union_vector: {:vector, {:union, :union_inner}}]}
+        {:table, %{fields: [union_field: {:union, %{ name: :union_inner }}, union_vector: {:vector, %{ type: {:union, %{name: :union_inner}}}}]}}
     }
     assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
