@@ -12,80 +12,6 @@ defmodule EflatbuffersTest do
     assert expected == reference_fb(:simple_table, %{field_a: 17})
   end
 
-  ### 8 bit types
-
-  test "write bytes" do
-    assert << 255 >> == write(:byte, -1)
-    assert {:error, {:wrong_type, :byte, 1000, []}} == catch_throw(write(:byte, 1000))
-    assert {:error, {:wrong_type, :byte, "x", []}}  == catch_throw(write(:byte, "x"))
-  end
-
-  test "write ubytes" do
-    assert << 42 >> == write(:ubyte, 42)
-  end
-
-  test "write bools" do
-    assert << 1 >> == write(:bool, true)
-    assert << 0 >> == write(:bool, false)
-  end
-
-  ### 16 bit types
-
-  test "write ushort" do
-    assert << 255, 255 >> == write(:ushort, 65_535)
-    assert << 42,  0 >> == write(:ushort, 42)
-    assert << 0, 0 >>     == write(:ushort, 0)
-    assert {:error, {:wrong_type, :ushort, 65536123, []}} == catch_throw(write(:ushort, 65_536_123))
-    assert {:error, {:wrong_type, :ushort, -1, []}}    == catch_throw(write(:ushort, -1))
-  end
-
-  test "write short" do
-    assert << 255, 127 >> == write(:short, 32_767)
-    assert << 0, 0 >>     == write(:short, 0)
-    assert << 0, 128 >>     == write(:short, -32_768)
-    assert {:error, {:wrong_type, :short, 32_768, []}}  == catch_throw(write(:short, 32_768))
-    assert {:error, {:wrong_type, :short, -32_769, []}} == catch_throw(write(:short, -32_769))
-  end
-
-  ### 32 bit types
-  ### 64 bit types
-
-
-  ### complex types
-
-  test "write strings" do
-    assert << 3, 0, 0, 0 >> <> "max" == write(:string, "max")
-    assert {:error, {:wrong_type, :byte, "max", []}} == catch_throw(write(:byte, "max"))
-  end
-
-  test "write vectors" do
-    assert [<<3, 0, 0, 0>>, [[<<1>>, <<1>>, <<0>>], []], ] == write({:vector, :bool}, [true, true, false])
-    assert(
-      [<<2, 0, 0, 0>>, [[<<8, 0, 0, 0>>, <<11, 0, 0, 0>>], [<<3, 0, 0, 0, 102, 111, 111>>, <<3, 0, 0, 0, 98, 97, 114>>]]] ==
-      write({:vector, :string}, ["foo", "bar"])
-    )
-  end
-
-  def write(type, data) do
-    Eflatbuffers.write(type, data, [], {%{}, %{}})
-  end
-
-  ### intermediate data
-
-  test "data buffer" do
-    data_buffer =  [
-      [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, []],
-      [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
-    ]
-    reply = Eflatbuffers.data_buffer_and_data(
-      [{:the_bool, :bool}, {:the_string, :string}, {:the_string2, :string}, {:the_bool2, :bool}],
-      [true, "max", "minimum", nil],
-      [],
-      '_'
-    )
-    assert( data_buffer == reply)
-  end
-
   ### complete flatbuffer binaries
 
   test "table of scalars" do
@@ -145,22 +71,16 @@ defmodule EflatbuffersTest do
       enum_field: "Green",
     }
     assert_full_circle(:enum_field, map)
+    assert_full_circle(:enum_field, %{})
   end
 
   test "vector of enum" do
-    tables = %{
-      :enum_inner =>
-        {{:enum, :int}, %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0}},
-      :table_outer =>
-        {:table, [enum_fields: {:vector, {:enum, :enum_inner}}]}
-    }
-    schema = { tables, %{root_type: :table_outer} }
     map = %{
       enum_fields: ["Red", "Green", "Blue"]
     }
     # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
+    {:ok, reply} = Eflatbuffers.write(map, load_schema(:vector_of_enums))
+    assert(map == Eflatbuffers.read!(:erlang.iolist_to_binary(reply), load_schema(:vector_of_enums)))
   end
 
   test "table with union" do
@@ -178,43 +98,14 @@ defmodule EflatbuffersTest do
     assert_full_circle(:table_vector, map)
   end
 
-  test "complex table with table vector" do
-    table = {:table,
-      [
-        value: :string,
-        inner: {:vector, {:table, :the_table}},
-      ]}
-    schema = { %{the_table: table}, %{root_type: :the_table} }
-    map = %{
-      value: "outer",
-      inner: [
-        %{
-          value: "middle",
-          inner: [
-          %{value: "inner",
-            inner: []
-          }
-        ]}]
-    }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    # reading
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
-  end
-
-  test "nested vectors (not supported by flatc)" do
-    table = {:table,
-      [
-        the_vector: {:vector, {:vector, :int}},
-      ]}
-    schema = { %{root_table: table}, %{root_type: :root_table} }
-    map = %{
-      the_vector: [[1,2,3],[4,5,6]],
-    }
-    # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    assert(map == Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema))
-  end
+  #test "nested vectors (not supported by flatc)" do
+  #  map = %{
+  #    the_vector: [[1,2,3],[4,5,6]],
+  #  }
+  #  # writing
+  #  {:ok, reply} = Eflatbuffers.write(map, load_schema(:nested_vector))
+  #  assert(map == Eflatbuffers.read!(:erlang.iolist_to_binary(reply), load_schema(:nested_vector)))
+  #end
 
   test "fb with string" do
     map = %{
@@ -233,12 +124,12 @@ defmodule EflatbuffersTest do
     {:ok, schema} = Eflatbuffers.Schema.parse(load_schema({:doge, :config}))
     map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
     # writing
-    reply = Eflatbuffers.write_fb!(map, schema)
-    reply_map  = Eflatbuffers.read_fb!(:erlang.iolist_to_binary(reply), schema)
+    reply = Eflatbuffers.write!(map, schema)
+    reply_map  = Eflatbuffers.read!(:erlang.iolist_to_binary(reply), schema)
 
     assert round_floats(map) == round_floats(reply_map)
 
-    looped_fb = Eflatbuffers.write_fb!(reply_map, schema)
+    looped_fb = Eflatbuffers.write!(reply_map, schema)
     assert looped_fb == reply
 
     assert_eq({:doge, :config}, map, reply)
@@ -278,8 +169,7 @@ defmodule EflatbuffersTest do
   end
 
   test "file identifier" do
-    schema = {%{foo: {:table, [a: :bool]}}, %{root_type: :foo, file_identifier: "helo"}}
-    reply = Eflatbuffers.write_fb!(%{}, schema)
+    reply = Eflatbuffers.write!(%{}, load_schema(:identifyer))
     assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
   end
 
@@ -289,15 +179,15 @@ defmodule EflatbuffersTest do
 
     map = %{foo: true, tables_field: [%{}, %{bar: 3, string_field: 23}]}
     assert {:error, {:wrong_type, :string, 23, [{:tables_field}, [1], {:string_field}]}} ==
-           catch_throw(Eflatbuffers.write_fb!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
+           catch_throw(Eflatbuffers.write!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
 
     map = %{foo: true, tables_field: [%{}, "hoho!"]}
-    assert {:error, {:wrong_type, {:table, :inner_table}, "hoho!", [{:tables_field}, [1]]}} ==
-           catch_throw(Eflatbuffers.write_fb!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
+    assert {:error, {:wrong_type, :table, "hoho!", [{:tables_field}, [1]]}} ==
+           catch_throw(Eflatbuffers.write!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
 
     map = %{foo: true, tables_field: 123}
-    assert {:error, {:wrong_type, {:vector, {:table, :inner_table}}, 123, [{:tables_field}]}} ==
-           catch_throw(Eflatbuffers.write_fb!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
+    assert {:error, {:wrong_type, :vector, 123, [{:tables_field}]}} ==
+           catch_throw(Eflatbuffers.write!(map, Eflatbuffers.parse_schema!(load_schema(:error))))
   end
 
 

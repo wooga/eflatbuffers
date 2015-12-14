@@ -17,17 +17,23 @@ defmodule TestHelpers do
   def assert_full_circle(schema_type_ex, schema_type_fc, map) do
     schema_ex    = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
 
-    fb_ex        = Eflatbuffers.write_fb!(map, schema_ex)
-IO.inspect {:schema_ex, schema_ex}, limit: 1000
-#IO.inspect {:fb_ex_ex,  Eflatbuffers.read_fb!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000
+    fb_ex        = Eflatbuffers.write!(map, schema_ex)
+#IO.inspect {:schema_ex, schema_ex}, limit: 1000
+#IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000
     map_ex_flatc = reference_map(schema_type_fc, :erlang.iolist_to_binary(fb_ex))
 
     fb_flatc     = reference_fb(schema_type_fc, map)
 # IO.inspect {:fb_flatc, :erlang.iolist_to_binary(fb_flatc)}, limit: 1000
 
-    map_flatc_ex = Eflatbuffers.read_fb!(fb_flatc, schema_ex)
+    map_flatc_ex = Eflatbuffers.read!(fb_flatc, schema_ex)
 
     diff = compare(round_floats(map_ex_flatc), round_floats(map_flatc_ex))
+    {tables, _} = schema_ex
+    default_enums =
+    case Map.values(tables) |> Enum.filter(fn({type, _}) -> type == :enum end) |> Enum.map(fn({:enum, options}) -> options.members end) do
+      [] -> []
+      members -> Enum.map( members, fn(e) -> Atom.to_string(Map.get(e, 0)) end)
+    end
     # since we write defaults to the json and flatc doesn't
     # we have to account for that
     diff = Enum.reduce(
@@ -37,7 +43,13 @@ IO.inspect {:schema_ex, schema_ex}, limit: 1000
           case {eflat, cflat} do
             {0, :undefined} ->
               acc
-            _ -> [{path, {eflat, cflat}} | acc]
+            {false, :undefined} ->
+              acc
+            {value, :undefined} ->
+              case Enum.member?(default_enums, value) do
+                true  -> acc
+                false -> [{path, {eflat, cflat}} | acc]
+              end
           end
       end
     )

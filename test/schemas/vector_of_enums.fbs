@@ -1,0 +1,7 @@
+enum enum_inner : byte { Red, Green, Blue }
+table vector_table
+{
+  enum_fields:[enum_inner];
+}
+root_type vector_table;
+

@@ -1,0 +1,9 @@
+table vector_table
+{
+  the_vector:[[int]];
+}
+root_type vector_table;
+
+
+
+
