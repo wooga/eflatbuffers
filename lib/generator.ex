@@ -1,64 +1,69 @@
 defmodule Eflatbuffers.Generator do
 
-  @max_string_len 50
-  @max_vector_len 10
+  @defaults %{
+    max_string_len: 100,
+    max_vector_len: 15,
+    skip_key_probability: 0.1,
+    default_probability: 0.1
+  }
 
-  def generate_from_schema(schema_str) when is_binary(schema_str) do
+  def map_from_schema(schema_str, opts \\ %{}) when is_binary(schema_str) do
     {:ok, {schema, %{root_type: root_type}}} = 
       schema_str
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse
-    gen_type(schema, root_type)  
+    gen_type(schema, root_type, Map.merge(@defaults, opts))  
   end
 
-  def gen_type(_schema, :byte) , do: random_num_signed(1)
-  def gen_type(_schema, :ubyte), do: random_num_unsigned(1)
+  def gen_type(_schema, :byte, opts), do: random_num_signed(1) |> maybe_default(0, opts)
+  def gen_type(_schema, :ubyte, opts), do: random_num_unsigned(1) |> maybe_default(0, opts)
   
-  def gen_type(_schema, :short), do: random_num_signed(2)
-  def gen_type(_schema, :ushort), do: random_num_unsigned(2)
+  def gen_type(_schema, :short, opts), do: random_num_signed(2) |> maybe_default(0, opts)
+  def gen_type(_schema, :ushort, opts), do: random_num_unsigned(2) |> maybe_default(0, opts)
 
-  def gen_type(_schema, :int), do: random_num_signed(4)  
-  def gen_type(_schema, :uint), do: random_num_unsigned(4)
+  def gen_type(_schema, :int, opts), do: random_num_signed(4) |> maybe_default(0, opts)  
+  def gen_type(_schema, :uint, opts), do: random_num_unsigned(4) |> maybe_default(0, opts)
 
-  def gen_type(_schema, :long), do: random_num_signed(8)
-  def gen_type(_schema, :ulong), do: random_num_signed(8)
+  def gen_type(_schema, :long, opts), do: random_num_signed(8) |> maybe_default(0, opts)
+  def gen_type(_schema, :ulong, opts), do: random_num_signed(8) |> maybe_default(0, opts)
   
-  def gen_type(_schema, :float), do: random_float(4)
-  def gen_type(_schema, :double), do: random_float(8)
+  def gen_type(_schema, :float, opts), do: random_float(4) |> maybe_default(0.0, opts)
+  def gen_type(_schema, :double, opts), do: random_float(8) |> maybe_default(0.0, opts)
   
-  def gen_type(_schema, :bool), do: random_bool
+  def gen_type(_schema, :bool, opts), do: random_bool() |> maybe_default(false, opts)
 
-  def gen_type(_schema, :string), do: random_string(:random.uniform(@max_string_len))
+  def gen_type(_schema, :string, opts), do: random_string(:random.uniform(opts.max_string_len))
 
-  def gen_type(schema, {:vector, type}) do
-    1..@max_vector_len
-    |> Enum.map(fn(_) -> gen_type(schema,type) end)
+  def gen_type(schema, {:vector, type}, opts) do
+    1..opts.max_vector_len
+    |> Enum.map(fn(_) -> gen_type(schema, type, opts) end)
   end
 
-  def gen_type(_schema, {{:enum, _type}, options}) do
-    [elem] = Enum.take_random(options, 1) 
+  def gen_type(_schema, {{:enum, _type}, enum_options}, _opts) do
+    [elem] = Enum.take_random(enum_options, 1) 
     Atom.to_string(elem)
   end
 
-  def gen_type(schema, {:union, types}) do
+  def gen_type(schema, {:union, types}, opts) do
     [type] = Enum.take_random(types, 1)
-    gen_type(schema, type)
+    gen_type(schema, type, opts)
   end
 
-  def gen_type(schema, {:table, types}) do
+  def gen_type(schema, {:table, types}, opts) do
     types
-    |> Enum.map(fn({name, type}) -> {name, gen_type(schema, type)} end)
+    |> Enum.filter(fn(_) -> :random.uniform() > opts.skip_key_probability end)
+    |> Enum.map(fn({name, type}) -> {name, gen_type(schema, type, opts)} end)
     |> Enum.into(%{})
   end
 
-  def gen_type(schema, {type, _default}) do
-    gen_type(schema, type)
+  def gen_type(schema, {type, _default}, opts) do
+    gen_type(schema, type, opts)
   end
 
-  def gen_type(schema, type) do
+  def gen_type(schema, type, opts) do
     case Map.get(schema, type) do
       nil      -> throw ("type not found: #{inspect(type)}")
-      type_def -> gen_type(schema, type_def)
+      type_def -> gen_type(schema, type_def, opts)
     end
   end
 
@@ -98,6 +103,14 @@ defmodule Eflatbuffers.Generator do
 
   def random_bytes(size) do
     :crypto.rand_bytes(size)
+  end
+
+  def maybe_default(value, default, opts) do
+    prob = opts.default_probability
+    case :random.uniform do
+      x when x < prob -> default
+      _ -> value
+    end
   end
 
 end

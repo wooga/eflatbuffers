@@ -148,12 +148,22 @@ defmodule Eflatbuffers.Reader do
   def read_table_fields([{name, {:union, %{ name: union_name }}} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, {tables, _options} = schema, map) do
     # for a union byte field named $fieldname$_type is prefixed
     union_index = read({ :byte, %{ default: 0 }}, data_buffer_pointer + data_offset, data, schema)
-    {:union, options} = Map.get(tables, union_name)
-    members           = options.members
-    union_type        = Map.get(members, union_index - 1)
-    union_type_key    = String.to_atom(Atom.to_string(name) <> "_type")
-    map_new           = Map.put(map, union_type_key, Atom.to_string(union_type))
-    read_table_fields([{name, {:table, %{ name: union_type }}} | fields], vtable, data_buffer_pointer, data, schema, map_new)
+    case union_index do
+      0 ->
+IO.inspect {:union_index_null}
+        # index is null, so field is not set
+        # carry on
+        read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map)
+      _ ->
+        # we have a table set so we get the type and
+        # expect it as the next record in the vtable
+        {:union, options} = Map.get(tables, union_name)
+        members           = options.members
+        union_type        = Map.get(members, union_index - 1)
+        union_type_key    = String.to_atom(Atom.to_string(name) <> "_type")
+        map_new           = Map.put(map, union_type_key, Atom.to_string(union_type))
+        read_table_fields([{name, {:table, %{ name: union_type }}} | fields], vtable, data_buffer_pointer, data, schema, map_new)
+    end
   end
   # we find a null pointer
   # so we set the dafault

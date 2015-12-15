@@ -103,11 +103,18 @@ defmodule Eflatbuffers.Writer do
         fn({name, {:union, %{ name: union_name }}}, {type_acc, value_acc}) ->
             {:union, options} = Map.get(tables, union_name)
             members           = options.members
-            union_type        = Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) |> String.to_atom
-            union_index       = Map.get(members, union_type)
-            type_acc_new  = [{{name}, { :byte, %{ default: 0 }}} | [{name, {:table, %{ name: union_type }}} | type_acc]]
-            value_acc_new = [union_index + 1 | [Map.get(map, name) | value_acc]]
-            {type_acc_new, value_acc_new}
+            case Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) do
+              nil ->
+                type_acc_new  = [{{name}, { :byte, %{ default: 0 }}} | type_acc]
+                value_acc_new = [ 0 | value_acc]
+                {type_acc_new, value_acc_new}
+              union_type ->
+                union_type   = String.to_atom(union_type)
+                union_index  = Map.get(members, union_type)
+                type_acc_new  = [{{name}, { :byte, %{ default: 0 }}} | [{name, {:table, %{ name: union_type }}} | type_acc]]
+                value_acc_new = [union_index + 1 | [Map.get(map, name) | value_acc]]
+                {type_acc_new, value_acc_new}
+            end
           ({name, type}, {type_acc, value_acc}) ->
             {[{{name}, type} | type_acc], [Map.get(map, name) | value_acc]}
         end
