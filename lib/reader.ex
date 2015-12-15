@@ -85,6 +85,7 @@ defmodule Eflatbuffers.Reader do
       nil ->
         throw({:error, {:not_in_enum, index, members}})
       value_atom ->
+#IO.inspect {:read_enum, enum_name, value_atom}
         Atom.to_string(value_atom)
     end
   end
@@ -155,19 +156,26 @@ defmodule Eflatbuffers.Reader do
     read_table_fields([{name, {:table, %{ name: union_type }}} | fields], vtable, data_buffer_pointer, data, schema, map_new)
   end
   # we find a null pointer
-  # so we don't set the value
-  def read_table_fields([{_, _} | fields], << 0, 0, vtable :: binary >>, data_buffer_pointer, data, schema, map) do
-    read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map)
+  # so we set the dafault
+  def read_table_fields([{name, {:enum, options }} | fields], << 0, 0, vtable :: binary >>, data_buffer_pointer, data, {tables, _} = schema, map) do
+    {_, enum_options} = Map.get(tables, options.name)
+    {_, %{ default: default }} = enum_options.type
+
+    map_new = Map.put(map, name, Atom.to_string(Map.get(enum_options.members, default)))
+    read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
+  end
+  def read_table_fields([{name, { type, options }} | fields],     << 0, 0, vtable :: binary >>, data_buffer_pointer, data, schema, map) do
+  #IO.inspect {:putting_default, type, name, options}
+    map_new =
+    case Map.get(options, :default) do
+      nil     -> map
+      default -> Map.put(map, name, default)
+    end
+    read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
   end
   def read_table_fields([{name, type} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, schema, map) do
-    map_new =
-    case data_offset do
-      0 ->
-        map
-      _ ->
-        value = read(type, data_buffer_pointer + data_offset, data, schema)
-        Map.put(map, name, value)
-    end
+    value   = read(type, data_buffer_pointer + data_offset, data, schema)
+    map_new = Map.put(map, name, value)
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
   end
 

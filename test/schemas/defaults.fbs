@@ -1,0 +1,15 @@
+table scalars
+{
+  my_byte:byte = -7;
+  my_ubyte:ubyte = 7;
+  my_bool:bool = true;
+  my_short:short = -7;
+  my_ushort:ushort = 7;
+  my_int:int = -7;
+  my_uint:uint = 7;
+  my_float:float = -7.7;
+  my_long:long = -7;
+  my_ulong:ulong = 7;
+  my_double:double = -7.7;
+}
+root_type scalars;

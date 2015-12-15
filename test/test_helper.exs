@@ -18,6 +18,7 @@ defmodule TestHelpers do
     schema_ex    = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
 
     fb_ex        = Eflatbuffers.write!(map, schema_ex)
+#IO.inspect {:fb_ex, :erlang.iolist_to_binary(fb_ex)}, limit: 1000
 #IO.inspect {:schema_ex, schema_ex}, limit: 1000
 #IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000
     map_ex_flatc = reference_map(schema_type_fc, :erlang.iolist_to_binary(fb_ex))
@@ -27,38 +28,13 @@ defmodule TestHelpers do
 
     map_flatc_ex = Eflatbuffers.read!(fb_flatc, schema_ex)
 
-    diff = compare(round_floats(map_ex_flatc), round_floats(map_flatc_ex))
-    {tables, _} = schema_ex
-    default_enums =
-    case Map.values(tables) |> Enum.filter(fn({type, _}) -> type == :enum end) |> Enum.map(fn({:enum, options}) -> options.members end) do
-      [] -> []
-      members -> Enum.map( members, fn(e) -> Atom.to_string(Map.get(e, 0)) end)
-    end
-    # since we write defaults to the json and flatc doesn't
-    # we have to account for that
-    diff = Enum.reduce(
-      diff,
-      [],
-      fn({path, {eflat, cflat}}, acc) ->
-          case {eflat, cflat} do
-            {0, :undefined} ->
-              acc
-            {false, :undefined} ->
-              acc
-            {value, :undefined} ->
-              case Enum.member?(default_enums, value) do
-                true  -> acc
-                false -> [{path, {eflat, cflat}} | acc]
-              end
-          end
-      end
-    )
+    diff = compare_with_defaults(round_floats(map_ex_flatc), round_floats(map_flatc_ex), schema_ex)
     assert [] == diff
   end
 
   def assert_eq(schema, map, binary) do
     map_looped = reference_map(schema, :erlang.iolist_to_binary(binary))
-    assert round_floats(map) == round_floats(map_looped)
+    assert [] == compare_with_defaults(round_floats(map), round_floats(map_looped), Eflatbuffers.Schema.parse!(load_schema(schema)))
   end
 
   def reference_fb(schema, data) when is_map(data) do
@@ -113,6 +89,34 @@ defmodule TestHelpers do
   def round_floats(float) when is_float(float), do: round(float)
   def round_floats(other), do: other
 
+  def compare_with_defaults(a, b, schema) do
+    {tables, _} = schema
+    default_enums =
+    case Map.values(tables) |> Enum.filter(fn({type, _}) -> type == :enum end) |> Enum.map(fn({:enum, options}) -> options.members end) do
+      [] -> []
+      members -> Enum.map( members, fn(e) -> Atom.to_string(Map.get(e, 0)) end)
+    end
+    default_scalars = Map.values(tables) |> Enum.filter(fn({type, _}) -> type == :table end) |> Enum.map(fn({:table, options}) -> Enum.map(options.fields, fn({_, {_, %{ default: default }}}) -> default; (_) -> nil end) end)
+    defaults        = Enum.uniq(List.flatten(default_enums ++ default_scalars ++ [0.0, 0, false]))
+    diff            = compare(a, b)
+    # since we write defaults to the json and flatc doesn't
+    # we have to account for that
+    Enum.reduce(
+      diff,
+      [],
+      fn({path, {eflat, cflat}}, acc) ->
+          case {eflat, cflat} do
+            {:undefined, value} ->
+              case Enum.member?(defaults, value) do
+                true  -> acc
+                false -> [{path, {eflat, cflat}} | acc]
+              end
+            _ ->
+              [{path, {eflat, cflat}} | acc]
+          end
+      end
+    )
+  end
 
   def compare(a, b) do
     List.flatten(compare(a, b, []))

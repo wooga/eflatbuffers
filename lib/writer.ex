@@ -1,6 +1,10 @@
 defmodule Eflatbuffers.Writer do
   alias Eflatbuffers.Utils
 
+  def write({ _, %{ default: same } }, same, _, _) do
+    []
+  end
+
   def write({ _, _ }, nil, _, _) do
     []
   end
@@ -59,24 +63,32 @@ defmodule Eflatbuffers.Writer do
   end
 
   def write({:vector, options}, values, path, schema) when is_list(values) do
-    type          = options.type
-    vector_length = length(values)
+    {type, type_options} = options.type
+    vector_length        = length(values)
     # we are putting the indices as [i] as a type
     # so if something goes wrong it's easy to see
     # that it was a vector index
-    index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {[i], type}
+    type_options_without_default = Map.put(type_options, :default, nil)
+#IO.inspect {:type_options, type_options}
+#IO.inspect {:type_options_without_default, type_options_without_default}
+    index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {[i], {type, type_options_without_default}}
     [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, schema) ]
   end
 
-  def write({:enum, %{ name: enum_name }}, value, path, {tables, _} = schema) when is_binary(value) do
-    {:enum, options} =  Map.get(tables, enum_name)
-    members = options.members
-    type    = options.type
+  def write({:enum, options = %{ name: enum_name }}, value, path, {tables, _} = schema) when is_binary(value) do
+    {:enum, enum_options} =  Map.get(tables, enum_name)
+    members = enum_options.members
+    {type, type_options}    = enum_options.type
+#IO.inspect {:enum_type_before, type_options}
+    # if we got handed some defaults from outside,
+    # we put them in here
+    type_options = Map.merge(type_options, options)
+#IO.inspect {:enum_type_after, type_options}
     value_atom = :erlang.binary_to_existing_atom(value, :utf8)
     index = Map.get(members, value_atom)
     case index do
       nil -> throw({:error, {:not_in_enum, value_atom, members}})
-      _   -> write(type, index, path, schema)
+      _   -> write({type, type_options}, index, path, schema)
     end
   end
 

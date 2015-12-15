@@ -1,6 +1,6 @@
 defmodule Eflatbuffers.Schema do
 
-  @scalars [
+  @referenced_types [
     :string,
     :byte,  :ubyte, :bool,
     :short, :ushort,
@@ -40,7 +40,7 @@ defmodule Eflatbuffers.Schema do
   # correlate tables with names
   # and define defaults explicitly
   def decorate({entities, options}) do
-    entities_corr =
+    entities_decorated =
     Enum.reduce(
       entities,
       %{},
@@ -53,9 +53,7 @@ defmodule Eflatbuffers.Schema do
           key,
           {
             :table,
-            %{
-              fields: Enum.map(fields, fn({field_name, field_value}) -> {field_name, decorate_field(field_value, entities)} end)
-            }
+            %{ fields: Enum.map(fields, fn({field_name, field_value}) -> {field_name, decorate_field(field_value, entities)} end) }
           }
         )
         # for enums we change the list of options
@@ -81,7 +79,7 @@ defmodule Eflatbuffers.Schema do
           Map.put(acc, key, {:union, %{ members: hash }})
       end
     )
-    {entities_corr, options}
+    {entities_decorated, options}
   end
 
   def decorate_field({:vector, type}, entities) do
@@ -89,15 +87,15 @@ defmodule Eflatbuffers.Schema do
   end
 
   def decorate_field(field_value, entities) do
-    case is_scalar?(field_value) do
+    case is_referenced?(field_value) do
       true ->
-        decorate_scalar(field_value)
+        decorate_field(field_value)
       false ->
-        decorate_complex_field(field_value, entities)
+        decorate_referenced_field(field_value, entities)
     end
   end
 
-  def decorate_complex_field(field_value, entities) do
+  def decorate_referenced_field(field_value, entities) do
     case Map.get(entities, field_value) do
       nil ->
         throw({:error, {:entity_not_found, field_value}})
@@ -110,20 +108,23 @@ defmodule Eflatbuffers.Schema do
     end
   end
 
-  def decorate_scalar({type, default}) do
+  def decorate_field({type, default}) do
     {type, %{ default: default} }
   end
-  def decorate_scalar(:bool) do
+  def decorate_field(:bool) do
     {:bool, %{ default: false }}
   end
-  def decorate_scalar(type) do
+  def decorate_field(:string) do
+    {:string, %{}}
+  end
+  def decorate_field(type) do
     {type, %{ default: 0 }}
   end
 
-  def is_scalar?({type, _default}) do
-    is_scalar?(type)
+  def is_referenced?({type, _default}) do
+    is_referenced?(type)
   end
-  def is_scalar?(type) do
-    Enum.member?(@scalars, type)
+  def is_referenced?(type) do
+    Enum.member?(@referenced_types, type)
   end
 end

@@ -31,6 +31,23 @@ defmodule EflatbuffersTest do
     assert_full_circle(:all_my_scalars, map)
   end
 
+  test "table of scalars with defaults" do
+    map = %{
+      my_byte: -7,
+      my_ubyte: 7,
+      my_bool: true,
+      my_short: -7,
+      my_ushort: 7,
+      my_int: -7,
+      my_uint: 7,
+      my_float: -7,
+      my_long: -7,
+      my_ulong: 7,
+      my_double: -7,
+    }
+    assert_full_circle(:defaults, map)
+  end
+
   test "read simple table" do
     map = %{
       field_a: 42,
@@ -76,7 +93,7 @@ defmodule EflatbuffersTest do
 
   test "vector of enum" do
     map = %{
-      enum_fields: ["Red", "Green", "Blue"]
+      enum_fields: ["Blue", "Green", "Red"]
     }
     # writing
     {:ok, reply} = Eflatbuffers.write(map, load_schema(:vector_of_enums))
@@ -126,13 +143,9 @@ defmodule EflatbuffersTest do
     # writing
     reply = Eflatbuffers.write!(map, schema)
     reply_map  = Eflatbuffers.read!(:erlang.iolist_to_binary(reply), schema)
+    assert [] == compare_with_defaults(round_floats(map), round_floats(reply_map), schema)
 
-    assert round_floats(map) == round_floats(reply_map)
-
-    looped_fb = Eflatbuffers.write!(reply_map, schema)
-    assert looped_fb == reply
-
-    assert_eq({:doge, :config}, map, reply)
+    assert_full_circle({:doge, :config}, map)
   end
 
   test "commands fb" do
