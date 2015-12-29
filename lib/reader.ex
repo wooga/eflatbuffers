@@ -98,11 +98,9 @@ defmodule Eflatbuffers.Reader do
     fields            = options.fields
     << _ :: binary-size(table_pointer), vtable_offset :: little-signed-size(32), _ :: binary >> = data
     vtable_pointer = table_pointer - vtable_offset
-    << _ :: binary-size(table_pointer), _ :: binary >> = data
     << _ :: binary-size(vtable_pointer), vtable_length :: little-size(16), _data_buffer_length :: little-size(16), _ :: binary >> = data
     vtable_fields_pointer = vtable_pointer + 4
     vtable_fields_length  = vtable_length  - 4
-    << _ :: binary-size(vtable_fields_pointer), _ :: binary >> = data
     << _ :: binary-size(vtable_fields_pointer), vtable :: binary-size(vtable_fields_length), _ :: binary >> = data
     data_buffer_pointer = table_pointer
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema)
@@ -150,7 +148,6 @@ defmodule Eflatbuffers.Reader do
     union_index = read({ :byte, %{ default: 0 }}, data_buffer_pointer + data_offset, data, schema)
     case union_index do
       0 ->
-IO.inspect {:union_index_null}
         # index is null, so field is not set
         # carry on
         read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map)

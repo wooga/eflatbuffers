@@ -160,14 +160,6 @@ defmodule EflatbuffersTest do
     )
   end
 
-  test "fb with string" do
-    map = %{
-      my_string: "hello",
-      my_bool: true,
-    }
-    assert_full_circle(:string_table, map)
-  end
-
   test "read nested table" do
     map = %{
       value_outer: 42,

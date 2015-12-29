@@ -69,6 +69,24 @@ defmodule Eflatbuffers do
     end
   end
 
+  def get(data, path, schema) do
+    try do
+      {:ok, get!(data, path, schema)}
+    catch
+      error -> error
+    rescue
+      error -> {:error, error}
+    end
+  end
+
+  def get!(data, path, schema) when is_binary(schema) do
+    get!(data, path, parse_schema!(schema))
+  end
+  def get!(data, path, {_tables, %{root_type: root_type}} = schema) do
+    Eflatbuffers.RandomAccess.get(path, {:table, %{ name: root_type }}, 0, data, schema)
+  end
+
+
 end
 
 
