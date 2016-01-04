@@ -117,7 +117,7 @@ defmodule Eflatbuffers.Reader do
 
   def read_vector_elements(type, true, vector_pointer, vector_count, data, schema) do
     value  = read(type, vector_pointer, data, schema)
-    offset = Utils.scalar_size(extract_scalar_type(type, schema))
+    offset = Utils.scalar_size(Utils.extract_scalar_type(type, schema))
     [value | read_vector_elements(type, true, vector_pointer + offset, vector_count - 1, data, schema)]
   end
 
@@ -185,12 +185,5 @@ defmodule Eflatbuffers.Reader do
     map_new = Map.put(map, name, value)
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema, map_new)
   end
-
-  def extract_scalar_type({:enum, %{ name: enum_name }}, {tables, _options}) do
-    { :enum, %{ type: type }} =  Map.get(tables, enum_name)
-    type
-  end
-
-  def extract_scalar_type(type, _), do: type
 
 end

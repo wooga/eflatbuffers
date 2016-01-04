@@ -67,7 +67,19 @@ defmodule EflatbuffersRandomAccessTest do
     assert "moin" == get(fb, [:data, :salute], :union_field)
   end
 
+  test "vector of enums" do
+    map = %{ enum_fields: ["Red", "Green", "Blue"] }
+    fb = fb(map, :vector_of_enums)
+    assert ["Red", "Green", "Blue"] == get(fb, [:enum_fields], :vector_of_enums)
+    assert "Green" == get(fb, [:enum_fields, 1], :vector_of_enums)
+  end
 
+  test "vector of strings" do
+    map = %{ string_vector: ["Hello", "shiny", "World"]}
+    fb = fb(map, :string_vector)
+    assert ["Hello", "shiny", "World"] == get(fb, [:string_vector], :string_vector)
+    assert "shiny" == get(fb, [:string_vector, 1], :string_vector)
+  end
 
   def get(fb, path, schema_type) do
      Eflatbuffers.get!(fb, path, load_schema(schema_type))

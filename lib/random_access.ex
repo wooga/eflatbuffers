@@ -1,4 +1,5 @@
 defmodule Eflatbuffers.RandomAccess do
+  alias Eflatbuffers.Utils
 
   def get([key | keys], {:table, %{ name: table_name }}, table_pointer_pointer, data, {tables, _} = schema) when is_atom(key) do
     {:table, table_options} = Map.get(tables, table_name)
@@ -29,22 +30,22 @@ defmodule Eflatbuffers.RandomAccess do
     end
   end
 
-  def data_pointer(index, table_pointer_pointer, data) do
-    << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(32), _ :: binary >> = data
-    table_pointer     = table_pointer_pointer + table_offset
-    << _ :: binary-size(table_pointer), vtable_offset :: little-signed-size(32), _ :: binary >> = data
-    vtable_pointer = table_pointer - vtable_offset + 4 + index * 2
-    << _ :: binary-size(vtable_pointer),  data_offset :: little-size(16), _ :: binary >> = data
-    table_pointer + data_offset
-  end
-
   def get([index | keys], {:vector, %{ type: type }}, vector_pointer, data, schema) when is_integer(index) do
     << _ :: binary-size(vector_pointer), vector_offset :: unsigned-little-size(32), _ :: binary >> = data
     vector_length_pointer = vector_pointer + vector_offset
     << _ :: binary-size(vector_length_pointer), vector_length :: unsigned-little-size(32), _ :: binary >> = data
-    data_offset =  vector_length_pointer + 4 + index * 4
+    element_offset =
+    case Utils.scalar?(type) do
+      true ->
+         Utils.scalar_size(Utils.extract_scalar_type(type, schema))
+      false ->
+        4
+    end
+
+    data_offset =  vector_length_pointer + 4 + index * element_offset
     case vector_length < index + 1 do
-      true ->  throw(:index_out_of_range)
+      true ->
+        throw(:index_out_of_range)
       false ->
         case keys do
           [] ->
@@ -53,6 +54,15 @@ defmodule Eflatbuffers.RandomAccess do
             get(keys, type, data_offset, data, schema)
         end
     end
+  end
+
+  def data_pointer(index, table_pointer_pointer, data) do
+    << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(32), _ :: binary >> = data
+    table_pointer     = table_pointer_pointer + table_offset
+    << _ :: binary-size(table_pointer), vtable_offset :: little-signed-size(32), _ :: binary >> = data
+    vtable_pointer = table_pointer - vtable_offset + 4 + index * 2
+    << _ :: binary-size(vtable_pointer),  data_offset :: little-size(16), _ :: binary >> = data
+    table_pointer + data_offset
   end
 
   def index_and_type(fields, key) do
