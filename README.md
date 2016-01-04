@@ -7,14 +7,15 @@
 * strings
 * vectors
 * unions
-* json -> fb
-* fb   -> json
-* enumerables
+* enums
+* defaults
+* json to fb
+* fb to json
 * file identifier
+* random access
 
 ## features not in flatc
 
-* nested vectors
 * vectors of enums
 
 ## deviation from flatbuffers
@@ -23,7 +24,6 @@
 
 ## pending features
 
-* random access
 * validate file identifiers
 * shared strings
 * shared vtables
