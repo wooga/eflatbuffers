@@ -81,6 +81,14 @@ defmodule EflatbuffersRandomAccessTest do
     assert "shiny" == get(fb, [:string_vector, 1], :string_vector)
   end
 
+  test "table vector" do
+    map = %{inner: [%{value_inner: "one"}, %{value_inner: "two"}, %{value_inner: "three"}]}
+    fb = fb(map, :table_vector)
+    assert [%{value_inner: "one"}, %{value_inner: "two"}, %{value_inner: "three"}] == get(fb, [:inner], :table_vector)
+    assert %{value_inner: "two"} == get(fb, [:inner, 1], :table_vector)
+    assert "three" == get(fb, [:inner, 2, :value_inner], :table_vector)
+  end
+
   def get(fb, path, schema_type) do
      Eflatbuffers.get!(fb, path, load_schema(schema_type))
   end
