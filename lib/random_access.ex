@@ -1,6 +1,10 @@
 defmodule Eflatbuffers.RandomAccess do
   alias Eflatbuffers.Utils
 
+  def get([], root_table, 0, data, schema) do
+    Eflatbuffers.Reader.read(root_table, 0, data, schema)
+  end
+
   def get([key | keys], {:table, %{ name: table_name }}, table_pointer_pointer, data, {tables, _} = schema) when is_atom(key) do
     {:table, table_options} = Map.get(tables, table_name)
     table_fields = table_options.fields

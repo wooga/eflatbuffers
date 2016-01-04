@@ -10,6 +10,7 @@ defmodule EflatbuffersRandomAccessTest do
     fb = fb(map, :string_table)
     assert "hello" == get(fb, [:my_string], :string_table)
     assert true    == get(fb, [:my_bool],   :string_table)
+    assert map     == get(fb, [],           :string_table)
   end
 
   test "all my scalars" do
@@ -87,6 +88,13 @@ defmodule EflatbuffersRandomAccessTest do
     assert [%{value_inner: "one"}, %{value_inner: "two"}, %{value_inner: "three"}] == get(fb, [:inner], :table_vector)
     assert %{value_inner: "two"} == get(fb, [:inner, 1], :table_vector)
     assert "three" == get(fb, [:inner, 2, :value_inner], :table_vector)
+  end
+
+  test "config" do
+    map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
+    fb = fb(map, {:doge, :config})
+    assert "townhall" == get(fb, [:config, :town_sectors, :townSectors, 2, :minLevel, 0, :id],  {:doge, :config})
+    assert "coins"    == get(fb, [:config, :quests, :quests, 0, :rewards, 0, :id],              {:doge, :config})
   end
 
   def get(fb, path, schema_type) do
