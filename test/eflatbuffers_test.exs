@@ -173,9 +173,17 @@ defmodule EflatbuffersTest do
     assert_full_circle(:table_bool_string_string, map)
   end
 
+  test "no file identifier" do
+    fb = Eflatbuffers.write!(%{}, load_schema(:no_identifier))
+    assert << _ :: size(4)-binary >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = :erlang.iolist_to_binary(fb)
+  end
+
   test "file identifier" do
-    reply = Eflatbuffers.write!(%{}, load_schema(:identifier))
-    assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
+    fb = Eflatbuffers.write!(%{}, load_schema(:identifier))
+    assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(fb)
+    assert %{} == Eflatbuffers.read!(:erlang.iolist_to_binary(fb), load_schema(:identifier))
+    assert {:error, {:identifier_mismatch, %{data: "helo", schema: "bye"}}} ==
+      catch_throw(Eflatbuffers.read!(:erlang.iolist_to_binary(fb), load_schema(:wrong_identifier)))
   end
 
   test "path errors" do
