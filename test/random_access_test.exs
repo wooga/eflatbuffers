@@ -71,10 +71,11 @@ defmodule EflatbuffersRandomAccessTest do
   end
 
   test "unions" do
-    map = %{ data: %{ salute: "moin"}, data_type: "hello" }
+    map = %{ data: %{ salute: "moin"}, data_type: "hello", additions_value: 123 }
     fb = fb(map, :union_field)
     assert %{salute: "moin"} == get(fb, [:data], :union_field)
-    assert "moin" == get(fb, [:data, :salute], :union_field)
+    assert "moin"  == get(fb, [:data, :salute], :union_field)
+    assert 123     == get(fb, [:additions_value], :union_field)
   end
 
   test "vector of enums" do

@@ -53,7 +53,10 @@ defmodule Eflatbuffers.Schema do
           key,
           {
             :table,
-            %{ fields: Enum.map(fields, fn({field_name, field_value}) -> {field_name, decorate_field(field_value, entities)} end) }
+            %{
+              fields:  decorate_fields(fields, entities),
+              indices: indices(fields, entities)
+            }
           }
         )
         # for enums we change the list of options
@@ -82,6 +85,37 @@ defmodule Eflatbuffers.Schema do
     {entities_decorated, options}
   end
 
+  def decorate_fields(fields, entities) do
+   Enum.map(fields, fn({field_name, field_value}) -> {field_name, decorate_field(field_value, entities)} end)
+  end
+
+  def indices(fields, entities) do
+    Enum.reduce(
+    fields,
+    {0, %{}},
+    fn({field_name, field_value}, {index, acc}) ->
+      {index_offset, type} = index_offset_and_type(field_value, entities)
+      { index + index_offset, Map.put(acc, field_name, {index, type})} end
+    )
+    |> elem(1)
+  end
+
+
+  def index_offset_and_type(field_value, entities) do
+    case is_referenced?(field_value) do
+      true ->
+        case Map.get(entities, field_value) do
+          {:union, _} ->
+            {2, decorate_field(field_value, entities)}
+          _ ->
+            {1, decorate_field(field_value, entities)}
+        end
+      false ->
+        {1, decorate_field(field_value, entities)}
+    end
+  end
+
+
   def decorate_field({:vector, type}, entities) do
     {:vector, %{ type: decorate_field(type, entities) }}
   end
@@ -89,9 +123,9 @@ defmodule Eflatbuffers.Schema do
   def decorate_field(field_value, entities) do
     case is_referenced?(field_value) do
       true ->
-        decorate_field(field_value)
-      false ->
         decorate_referenced_field(field_value, entities)
+      false ->
+        decorate_field(field_value)
     end
   end
 
@@ -125,6 +159,6 @@ defmodule Eflatbuffers.Schema do
     is_referenced?(type)
   end
   def is_referenced?(type) do
-    Enum.member?(@referenced_types, type)
+    not Enum.member?(@referenced_types, type)
   end
 end

@@ -104,6 +104,7 @@ defmodule EflatbuffersTest do
     map = %{
       data: %{greeting: 42},
       data_type: "bye",
+      additions_value: 123
     }
     assert_full_circle(:union_field, map)
   end

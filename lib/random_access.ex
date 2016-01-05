@@ -7,8 +7,7 @@ defmodule Eflatbuffers.RandomAccess do
 
   def get([key | keys], {:table, %{ name: table_name }}, table_pointer_pointer, data, {tables, _} = schema) when is_atom(key) do
     {:table, table_options} = Map.get(tables, table_name)
-    table_fields = table_options.fields
-    {index, type} = index_and_type(table_fields, key)
+    {index, type} = Map.get(table_options.indices, key)
     {type_concrete, index_concrete} =
     case type do
       {:union, %{name: union_name}} ->
@@ -79,9 +78,15 @@ defmodule Eflatbuffers.RandomAccess do
     end
   end
 
+
+
+
+
   def index_and_type(fields, key) do
     {{^key, type}, index} = Enum.find(Enum.with_index(fields), fn({{name, _}, _}) -> name == key end)
     {index, type}
   end
+
+
 
 end

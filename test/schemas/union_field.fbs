@@ -13,6 +13,7 @@ union command { hello, bye }
 
 table command_root {
   data:command;
+  additions_value:int;
 }
 
 root_type command_root;
