@@ -51,13 +51,7 @@ defmodule Eflatbuffers.Schema do
         Map.put(
           acc,
           key,
-          {
-            :table,
-            %{
-              fields:  decorate_fields(fields, entities),
-              indices: indices(fields, entities)
-            }
-          }
+          { :table, table_options(fields, entities) }
         )
         # for enums we change the list of options
         # into a map for faster lookup when
@@ -85,33 +79,34 @@ defmodule Eflatbuffers.Schema do
     {entities_decorated, options}
   end
 
-  def decorate_fields(fields, entities) do
-   Enum.map(fields, fn({field_name, field_value}) -> {field_name, decorate_field(field_value, entities)} end)
+  def table_options(fields, entities) do
+    fields_and_indices(fields, entities, {0, [], %{}})
   end
 
-  def indices(fields, entities) do
-    Enum.reduce(
-    fields,
-    {0, %{}},
-    fn({field_name, field_value}, {index, acc}) ->
-      {index_offset, type} = index_offset_and_type(field_value, entities)
-      { index + index_offset, Map.put(acc, field_name, {index, type})} end
-    )
-    |> elem(1)
+  def fields_and_indices([], _, {_, fields, indices}) do
+    %{ fields: Enum.reverse(fields), indices: indices }
   end
 
+  def fields_and_indices([{field_name, field_value} | fields], entities, {index, fields_acc, indices_acc}) do
+    index_offset    = index_offset(field_value, entities)
+    decorated_type  = decorate_field(field_value, entities)
+    index_new       = index + index_offset
+    fields_acc_new  = [{field_name, decorated_type} | fields_acc]
+    indices_acc_new = Map.put(indices_acc, field_name, {index, decorated_type})
+    fields_and_indices(fields, entities, {index_new, fields_acc_new, indices_acc_new})
+  end
 
-  def index_offset_and_type(field_value, entities) do
+  def index_offset(field_value, entities) do
     case is_referenced?(field_value) do
       true ->
         case Map.get(entities, field_value) do
           {:union, _} ->
-            {2, decorate_field(field_value, entities)}
+            2
           _ ->
-            {1, decorate_field(field_value, entities)}
+            1
         end
       false ->
-        {1, decorate_field(field_value, entities)}
+        1
     end
   end
 
