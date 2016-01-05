@@ -24,13 +24,20 @@ defmodule Eflatbuffers.RandomAccess do
       _ ->
         {type, index}
     end
-    data_pointer  = data_pointer(index_concrete, table_pointer_pointer, data)
-    case keys do
-      [] ->
-        # this is the terminus where we switch to eager reading
-        Eflatbuffers.Reader.read(type_concrete, data_pointer, data, schema)
-      _ ->
-        get(keys, type_concrete, data_pointer, data, schema)
+    case data_pointer(index_concrete, table_pointer_pointer, data) do
+      false ->
+        # we encountered a null pointer, we return nil
+        # whether we reached the end of the path or not
+        nil
+      data_pointer ->
+        case keys do
+          [] ->
+            # this is the terminus where we switch to eager reading
+            Eflatbuffers.Reader.read(type_concrete, data_pointer, data, schema)
+          _ ->
+            # there are keys left, we recurse
+            get(keys, type_concrete, data_pointer, data, schema)
+        end
     end
   end
 
@@ -66,7 +73,10 @@ defmodule Eflatbuffers.RandomAccess do
     << _ :: binary-size(table_pointer), vtable_offset :: little-signed-size(32), _ :: binary >> = data
     vtable_pointer = table_pointer - vtable_offset + 4 + index * 2
     << _ :: binary-size(vtable_pointer),  data_offset :: little-size(16), _ :: binary >> = data
-    table_pointer + data_offset
+    case data_offset do
+      0 -> false
+      _ -> table_pointer + data_offset
+    end
   end
 
   def index_and_type(fields, key) do
