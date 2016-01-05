@@ -69,8 +69,6 @@ defmodule Eflatbuffers.Writer do
     # so if something goes wrong it's easy to see
     # that it was a vector index
     type_options_without_default = Map.put(type_options, :default, nil)
-#IO.inspect {:type_options, type_options}
-#IO.inspect {:type_options_without_default, type_options_without_default}
     index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {[i], {type, type_options_without_default}}
     [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, schema) ]
   end
@@ -79,11 +77,9 @@ defmodule Eflatbuffers.Writer do
     {:enum, enum_options} =  Map.get(tables, enum_name)
     members = enum_options.members
     {type, type_options}    = enum_options.type
-#IO.inspect {:enum_type_before, type_options}
     # if we got handed some defaults from outside,
     # we put them in here
     type_options = Map.merge(type_options, options)
-#IO.inspect {:enum_type_after, type_options}
     value_atom = :erlang.binary_to_existing_atom(value, :utf8)
     index = Map.get(members, value_atom)
     case index do

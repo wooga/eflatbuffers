@@ -48,8 +48,16 @@ defmodule Eflatbuffers do
     read!(data, parse_schema!(schema_str))
   end
 
-  def read!(data, {_, %{root_type: root_type}} = schema) do
+  def read!(data, {_, schema_options = %{root_type: root_type}} = schema) do
+    match_identifiers(data, schema_options)
     Eflatbuffers.Reader.read({:table, %{ name: root_type }}, 0, data, schema)
+  end
+
+  def match_identifiers( << _::size(4)-binary, identifier_data::size(4)-binary, _::binary >>, schema_options) do
+    case Map.get(schema_options, :file_identifier, << 0, 0, 0, 0 >>) do
+      ^identifier_data   -> :ok
+      identifier_schema -> throw({:error, {:identifier_mismatch, %{data: identifier_data, schema: identifier_schema}}})
+    end
   end
 
   def read(data, schema_str) when is_binary(schema_str) do
