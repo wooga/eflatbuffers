@@ -1,0 +1,3 @@
+table dummy_table
+{}
+root_type dummy_table;

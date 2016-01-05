@@ -1,0 +1,4 @@
+table dummy_table
+{}
+root_type dummy_table;
+file_identifier "bye";

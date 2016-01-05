@@ -174,7 +174,7 @@ defmodule EflatbuffersTest do
   end
 
   test "file identifier" do
-    reply = Eflatbuffers.write!(%{}, load_schema(:identifyer))
+    reply = Eflatbuffers.write!(%{}, load_schema(:identifier))
     assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
   end
 
