@@ -17,14 +17,15 @@ defmodule TestHelpers do
   def assert_full_circle(schema_type_ex, schema_type_fc, map) do
     schema_ex    = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
 
+    fb_flatc     = reference_fb(schema_type_fc, map)
+#IO.inspect {:fb_flatc, :erlang.iolist_to_binary(fb_flatc)}, limit: 1000
+
     fb_ex        = Eflatbuffers.write!(map, schema_ex)
 #IO.inspect {:fb_ex, :erlang.iolist_to_binary(fb_ex)}, limit: 1000
 #IO.inspect {:schema_ex, schema_ex}, limit: 1000
+#IO.inspect {:schema_type_fc, schema_type_fc}, limit: 1000
 #IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000
     map_ex_flatc = reference_map(schema_type_fc, :erlang.iolist_to_binary(fb_ex))
-
-    fb_flatc     = reference_fb(schema_type_fc, map)
-# IO.inspect {:fb_flatc, :erlang.iolist_to_binary(fb_flatc)}, limit: 1000
 
     map_flatc_ex = Eflatbuffers.read!(fb_flatc, schema_ex)
 

@@ -174,8 +174,15 @@ defmodule EflatbuffersTest do
   end
 
   test "file identifier" do
-    reply = Eflatbuffers.write!(%{}, load_schema(:identifier))
-    assert << _ :: size(32) >> <> "helo" <> << _ :: binary >> = :erlang.iolist_to_binary(reply)
+    fb_id    = Eflatbuffers.write!(%{}, load_schema(   :identifier))
+    fb_no_id = Eflatbuffers.write!(%{}, load_schema(:no_identifier))
+    assert << _ :: size(32) >> <> "helo"           <> << _ :: binary >> = :erlang.iolist_to_binary(fb_id)
+    assert << _ :: size(32) >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = :erlang.iolist_to_binary(fb_no_id)
+    assert %{} == Eflatbuffers.read!(:erlang.iolist_to_binary(fb_id),    load_schema(:no_identifier))
+    assert {:error, {:identifier_mismatch, %{data: <<0, 0, 0, 0>>, schema: "helo"}}} ==
+      catch_throw(Eflatbuffers.read!(:erlang.iolist_to_binary(fb_no_id), load_schema(:identifier)))
+    assert_full_circle(:identifier, %{})
+    assert_full_circle(:no_identifier, %{})
   end
 
   test "path errors" do

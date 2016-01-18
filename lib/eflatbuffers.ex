@@ -21,10 +21,10 @@ defmodule Eflatbuffers do
     file_identifier =
       case Map.get(options, :file_identifier) do
         << bin :: size(32) >> -> << bin :: size(32) >>
-        _                     -> << 0   :: size(32) >>
+        _                     -> << 0, 0, 0, 0 >>
       end
 
-    [<< (vtable_offset + 8) :: little-size(32) >>, file_identifier, root_table]
+    [<< (vtable_offset + 4 + byte_size(file_identifier)) :: little-size(32) >>, file_identifier, root_table]
   end
 
   def write(map, schema_str) when is_binary(schema_str) do
@@ -54,9 +54,13 @@ defmodule Eflatbuffers do
   end
 
   def match_identifiers( << _::size(4)-binary, identifier_data::size(4)-binary, _::binary >>, schema_options) do
-    case Map.get(schema_options, :file_identifier, << 0, 0, 0, 0 >>) do
+    case Map.get(schema_options, :file_identifier) do
+      # nothing in schema
+      nil                -> :ok
+      # schema matches data
       ^identifier_data   -> :ok
-      identifier_schema -> throw({:error, {:identifier_mismatch, %{data: identifier_data, schema: identifier_schema}}})
+      # defined in schema but data says something else
+      identifier_schema  -> throw({:error, {:identifier_mismatch, %{data: identifier_data, schema: identifier_schema}}})
     end
   end
 
