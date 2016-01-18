@@ -51,10 +51,7 @@ defmodule Eflatbuffers.Schema do
         Map.put(
           acc,
           key,
-          {
-            :table,
-            %{ fields: Enum.map(fields, fn({field_name, field_value}) -> {field_name, decorate_field(field_value, entities)} end) }
-          }
+          { :table, table_options(fields, entities) }
         )
         # for enums we change the list of options
         # into a map for faster lookup when
@@ -82,6 +79,38 @@ defmodule Eflatbuffers.Schema do
     {entities_decorated, options}
   end
 
+  def table_options(fields, entities) do
+    fields_and_indices(fields, entities, {0, [], %{}})
+  end
+
+  def fields_and_indices([], _, {_, fields, indices}) do
+    %{ fields: Enum.reverse(fields), indices: indices }
+  end
+
+  def fields_and_indices([{field_name, field_value} | fields], entities, {index, fields_acc, indices_acc}) do
+    index_offset    = index_offset(field_value, entities)
+    decorated_type  = decorate_field(field_value, entities)
+    index_new       = index + index_offset
+    fields_acc_new  = [{field_name, decorated_type} | fields_acc]
+    indices_acc_new = Map.put(indices_acc, field_name, {index, decorated_type})
+    fields_and_indices(fields, entities, {index_new, fields_acc_new, indices_acc_new})
+  end
+
+  def index_offset(field_value, entities) do
+    case is_referenced?(field_value) do
+      true ->
+        case Map.get(entities, field_value) do
+          {:union, _} ->
+            2
+          _ ->
+            1
+        end
+      false ->
+        1
+    end
+  end
+
+
   def decorate_field({:vector, type}, entities) do
     {:vector, %{ type: decorate_field(type, entities) }}
   end
@@ -89,9 +118,9 @@ defmodule Eflatbuffers.Schema do
   def decorate_field(field_value, entities) do
     case is_referenced?(field_value) do
       true ->
-        decorate_field(field_value)
-      false ->
         decorate_referenced_field(field_value, entities)
+      false ->
+        decorate_field(field_value)
     end
   end
 
@@ -125,6 +154,6 @@ defmodule Eflatbuffers.Schema do
     is_referenced?(type)
   end
   def is_referenced?(type) do
-    Enum.member?(@referenced_types, type)
+    not Enum.member?(@referenced_types, type)
   end
 end

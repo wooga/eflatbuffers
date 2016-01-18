@@ -46,6 +46,15 @@ defmodule EflatbuffersRandomAccessTest do
     assert 2 == get(fb, [:inner, :value_inner], :nested)
   end
 
+  test "omitted values" do
+    map = %{
+      value_outer: 1
+    }
+    fb = fb(map, :nested)
+    assert nil == get(fb, [:inner], :nested)
+    assert nil == get(fb, [:inner, :value_inner], :nested)
+  end
+
   test "int vector" do
     map = %{
       int_vector: [23, 42, 0],
@@ -62,10 +71,11 @@ defmodule EflatbuffersRandomAccessTest do
   end
 
   test "unions" do
-    map = %{ data: %{ salute: "moin"}, data_type: "hello" }
+    map = %{ data: %{ salute: "moin"}, data_type: "hello", additions_value: 123 }
     fb = fb(map, :union_field)
     assert %{salute: "moin"} == get(fb, [:data], :union_field)
-    assert "moin" == get(fb, [:data, :salute], :union_field)
+    assert "moin"  == get(fb, [:data, :salute], :union_field)
+    assert 123     == get(fb, [:additions_value], :union_field)
   end
 
   test "vector of enums" do

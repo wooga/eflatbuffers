@@ -104,6 +104,7 @@ defmodule EflatbuffersTest do
     map = %{
       data: %{greeting: 42},
       data_type: "bye",
+      additions_value: 123
     }
     assert_full_circle(:union_field, map)
   end
@@ -171,6 +172,11 @@ defmodule EflatbuffersTest do
   test "write fb" do
     map = %{my_bool: true, my_string: "max", my_second_string: "minimum"}
     assert_full_circle(:table_bool_string_string, map)
+  end
+
+  test "no file identifier" do
+    fb = Eflatbuffers.write!(%{}, load_schema(:no_identifier))
+    assert << _ :: size(4)-binary >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = :erlang.iolist_to_binary(fb)
   end
 
   test "file identifier" do

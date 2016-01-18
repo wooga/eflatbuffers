@@ -142,6 +142,12 @@ defmodule Eflatbuffers.Reader do
     map
   end
 
+  # we might have more data but no more fields
+  # that means the data is ahead and has more data than the schema
+  def read_table_fields([], _, _, _, _, map) do
+    map
+  end
+
   def read_table_fields([{name, {:union, %{ name: union_name }}} | fields], << data_offset :: little-size(16), vtable :: binary >>, data_buffer_pointer, data, {tables, _options} = schema, map) do
     # for a union byte field named $fieldname$_type is prefixed
     union_index = read({ :byte, %{ default: 0 }}, data_buffer_pointer + data_offset, data, schema)
