@@ -86,6 +86,14 @@ table ResourceCosts {
   costs:[Resource];
 }
 
+table matchMaking {
+  lowerFixed:int;
+  lowerPercentage:int;
+  upperFixed:int;
+  upperPercentage:int;
+  limit:int;
+}
+
 table Trophy {
   win:int;
   loss:int;
@@ -118,6 +126,7 @@ table RaidsRoot {
   raidRefreshCosts:[ResourceCosts];
   islandLootGemsMin:int;
   islandLootGemsMax:int;
+  matchMaking:matchMaking;
 }
 
 table QuestUnlocks {
