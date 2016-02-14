@@ -120,10 +120,10 @@ defmodule Eflatbuffers.Writer do
     # that it was a map key
     [data_buffer, data] = data_buffer_and_data(names_types, values, path, meta)
     vtable              = vtable(data_buffer)
-    springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
-    data_buffer_length  = << :erlang.iolist_size([springboard, data_buffer]) :: little-size(16) >>
-    vtable_length       = << :erlang.iolist_size([vtable, springboard])      :: little-size(16) >>
-    [vtable_length, data_buffer_length, vtable, springboard, data_buffer, data]
+    vtable_offset         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
+    data_buffer_length  = << :erlang.iolist_size([vtable_offset, data_buffer]) :: little-size(16) >>
+    vtable_length       = << :erlang.iolist_size([vtable, vtable_offset])      :: little-size(16) >>
+    [vtable_length, data_buffer_length, vtable, vtable_offset, data_buffer, data]
   end
 
   # fail if nothing matches
@@ -155,7 +155,7 @@ defmodule Eflatbuffers.Writer do
       false ->
         complex_data = write(type, value, [name|path], meta)
         complex_data_length = :erlang.iolist_size(complex_data)
-        # for a table we do not point to the start but to the springboard
+        # for a table we do not point to the start but to the vtable_offset
         data_pointer =
           case type do
             {:table, _} ->

@@ -89,7 +89,7 @@ defmodule Eflatbuffers.Reader do
     end
   end
 
-  # read a complete table, given a pointer to the springboard
+  # read a complete table, given a pointer to the vtable_offset
   def read({:table, %{ name: table_name }}, table_pointer_pointer, data, %{ entities: entities } = meta) when is_atom(table_name) do
     << _ :: binary-size(table_pointer_pointer), table_offset :: little-size(32), _ :: binary >> = data
     table_pointer     = table_pointer_pointer + table_offset
