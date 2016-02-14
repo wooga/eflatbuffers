@@ -1,22 +1,22 @@
 defmodule Eflatbuffers.RandomAccess do
   alias Eflatbuffers.Utils
 
-  def get([], root_table, 0, data, schema) do
-    Eflatbuffers.Reader.read(root_table, 0, data, schema)
+  def get([], root_table, 0, data, meta) do
+    Eflatbuffers.Reader.read(root_table, 0, data, meta)
   end
 
-  def get([key | keys], {:table, %{ name: table_name }}, table_pointer_pointer, data, {tables, _} = schema) when is_atom(key) do
-    {:table, table_options} = Map.get(tables, table_name)
+  def get([key | keys], {:table, %{ name: table_name }}, table_pointer_pointer, data, %{ entities: entities } = meta) when is_atom(key) do
+    {:table, table_options} = Map.get(entities, table_name)
     {index, type} = Map.get(table_options.indices, key)
     {type_concrete, index_concrete} =
     case type do
       {:union, %{name: union_name}} ->
         # we are getting the field type from the field
         # and the data is actually in the next field
-        # since the schema does not contain the *_type field
+        # since the meta does not contain the *_type field
         type_pointer     = data_pointer(index, table_pointer_pointer, data)
-        union_type_index = Eflatbuffers.Reader.read({:byte, %{ default: 0 }}, type_pointer, data, schema) - 1
-        {:union, union_definition} = Map.get(tables, union_name)
+        union_type_index = Eflatbuffers.Reader.read({:byte, %{ default: 0 }}, type_pointer, data, meta) - 1
+        {:union, union_definition} = Map.get(entities, union_name)
         union_type = Map.get(union_definition.members, union_type_index)
         type = {:table, %{ name: union_type }}
         {type, index + 1}
@@ -32,22 +32,22 @@ defmodule Eflatbuffers.RandomAccess do
         case keys do
           [] ->
             # this is the terminus where we switch to eager reading
-            Eflatbuffers.Reader.read(type_concrete, data_pointer, data, schema)
+            Eflatbuffers.Reader.read(type_concrete, data_pointer, data, meta)
           _ ->
             # there are keys left, we recurse
-            get(keys, type_concrete, data_pointer, data, schema)
+            get(keys, type_concrete, data_pointer, data, meta)
         end
     end
   end
 
-  def get([index | keys], {:vector, %{ type: type }}, vector_pointer, data, schema) when is_integer(index) do
+  def get([index | keys], {:vector, %{ type: type }}, vector_pointer, data, meta) when is_integer(index) do
     << _ :: binary-size(vector_pointer), vector_offset :: unsigned-little-size(32), _ :: binary >> = data
     vector_length_pointer = vector_pointer + vector_offset
     << _ :: binary-size(vector_length_pointer), vector_length :: unsigned-little-size(32), _ :: binary >> = data
     element_offset =
     case Utils.scalar?(type) do
       true ->
-         Utils.scalar_size(Utils.extract_scalar_type(type, schema))
+         Utils.scalar_size(Utils.extract_scalar_type(type, meta))
       false ->
         4
     end
@@ -59,9 +59,9 @@ defmodule Eflatbuffers.RandomAccess do
       false ->
         case keys do
           [] ->
-            Eflatbuffers.Reader.read(type, data_offset, data, schema)
+            Eflatbuffers.Reader.read(type, data_offset, data, meta)
           _ ->
-            get(keys, type, data_offset, data, schema)
+            get(keys, type, data_offset, data, meta)
         end
     end
   end

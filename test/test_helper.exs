@@ -91,13 +91,13 @@ defmodule TestHelpers do
   def round_floats(other), do: other
 
   def compare_with_defaults(a, b, schema) do
-    {tables, _} = schema
+    entities = schema.entities
     default_enums =
-    case Map.values(tables) |> Enum.filter(fn({type, _}) -> type == :enum end) |> Enum.map(fn({:enum, options}) -> options.members end) do
+    case Map.values(entities)  |> Enum.filter(fn({type, _}) -> type == :enum end) |> Enum.map(fn({:enum, options}) -> options.members end) do
       [] -> []
       members -> Enum.map( members, fn(e) -> Atom.to_string(Map.get(e, 0)) end)
     end
-    default_scalars = Map.values(tables) |> Enum.filter(fn({type, _}) -> type == :table end) |> Enum.map(fn({:table, options}) -> Enum.map(options.fields, fn({_, {_, %{ default: default }}}) -> default; (_) -> nil end) end)
+    default_scalars = Map.values(entities) |> Enum.filter(fn({type, _}) -> type == :table end) |> Enum.map(fn({:table, options}) -> Enum.map(options.fields, fn({_, {_, %{ default: default }}}) -> default; (_) -> nil end) end)
     defaults        = Enum.uniq(List.flatten(default_enums ++ default_scalars ++ [0.0, 0, false]))
     diff            = compare(a, b)
     # since we write defaults to the json and flatc doesn't

@@ -62,7 +62,7 @@ defmodule Eflatbuffers.Writer do
     << byte_size(string) :: unsigned-little-size(32) >> <> string
   end
 
-  def write({:vector, options}, values, path, schema) when is_list(values) do
+  def write({:vector, options}, values, path, meta) when is_list(values) do
     {type, type_options} = options.type
     vector_length        = length(values)
     # we are putting the indices as [i] as a type
@@ -70,11 +70,11 @@ defmodule Eflatbuffers.Writer do
     # that it was a vector index
     type_options_without_default = Map.put(type_options, :default, nil)
     index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {[i], {type, type_options_without_default}}
-    [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, schema) ]
+    [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, meta) ]
   end
 
-  def write({:enum, options = %{ name: enum_name }}, value, path, {tables, _} = schema) when is_binary(value) do
-    {:enum, enum_options} =  Map.get(tables, enum_name)
+  def write({:enum, options = %{ name: enum_name }}, value, path, %{ entities: entities } = meta) when is_binary(value) do
+    {:enum, enum_options} =  Map.get(entities, enum_name)
     members = enum_options.members
     {type, type_options}    = enum_options.type
     # if we got handed some defaults from outside,
@@ -84,20 +84,20 @@ defmodule Eflatbuffers.Writer do
     index = Map.get(members, value_atom)
     case index do
       nil -> throw({:error, {:not_in_enum, value_atom, members}})
-      _   -> write({type, type_options}, index, path, schema)
+      _   -> write({type, type_options}, index, path, meta)
     end
   end
 
   # write a complete table
-  def write({:table, %{ name: table_name }}, map, path, {tables, _options} = schema) when is_map(map) and is_atom(table_name) do
-    {:table, options} = Map.get(tables, table_name)
+  def write({:table, %{ name: table_name }}, map, path, %{ entities: entities } = meta) when is_map(map) and is_atom(table_name) do
+    {:table, options} = Map.get(entities, table_name)
     fields            = options.fields
     {names_types, values} =
       Enum.reduce(
         Enum.reverse(fields),
         {[], []},
         fn({name, {:union, %{ name: union_name }}}, {type_acc, value_acc}) ->
-            {:union, options} = Map.get(tables, union_name)
+            {:union, options} = Map.get(entities, union_name)
             members           = options.members
             case Map.get(map, String.to_atom(Atom.to_string(name) <> "_type")) do
               nil ->
@@ -118,7 +118,7 @@ defmodule Eflatbuffers.Writer do
     # we are putting the keys as {key} as a type
     # so if something goes wrong it's easy to see
     # that it was a map key
-    [data_buffer, data] = data_buffer_and_data(names_types, values, path, schema)
+    [data_buffer, data] = data_buffer_and_data(names_types, values, path, meta)
     vtable              = vtable(data_buffer)
     springboard         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
     data_buffer_length  = << :erlang.iolist_size([springboard, data_buffer]) :: little-size(16) >>
@@ -133,27 +133,27 @@ defmodule Eflatbuffers.Writer do
 
   # build up [data_buffer, data]
   # as part of a table or vector
-  def data_buffer_and_data(types, values, path, schema) do
-    data_buffer_and_data(types, values, path, schema, {[], [], 0})
+  def data_buffer_and_data(types, values, path, meta) do
+    data_buffer_and_data(types, values, path, meta, {[], [], 0})
   end
-  def data_buffer_and_data([], [], _path, _schema, {data_buffer, data, _}) do
+  def data_buffer_and_data([], [], _path, _meta, {data_buffer, data, _}) do
     [adjust_for_length(data_buffer), Enum.reverse(data)]
   end
 
   # value is nil so we put a null pointer
-  def data_buffer_and_data([_type | types], [nil | values], path, schema, {scalar_and_pointers, data, data_offset}) do
-    data_buffer_and_data(types, values, path, schema, {[[] | scalar_and_pointers], data, data_offset})
+  def data_buffer_and_data([_type | types], [nil | values], path, meta, {scalar_and_pointers, data, data_offset}) do
+    data_buffer_and_data(types, values, path, meta, {[[] | scalar_and_pointers], data, data_offset})
   end
-  def data_buffer_and_data([{name, type} | types], [value | values], path, schema, {scalar_and_pointers, data, data_offset}) do
+  def data_buffer_and_data([{name, type} | types], [value | values], path, meta, {scalar_and_pointers, data, data_offset}) do
     # for clean error reporting we
     # need to accumulate the names of tables (depth)
     # but not the indices for vectors (width)
     case Utils.scalar?(type) do
       true ->
-        scalar_data = write(type, value, [name|path], schema)
-        data_buffer_and_data(types, values, path, schema, {[scalar_data | scalar_and_pointers], data, data_offset})
+        scalar_data = write(type, value, [name|path], meta)
+        data_buffer_and_data(types, values, path, meta, {[scalar_data | scalar_and_pointers], data, data_offset})
       false ->
-        complex_data = write(type, value, [name|path], schema)
+        complex_data = write(type, value, [name|path], meta)
         complex_data_length = :erlang.iolist_size(complex_data)
         # for a table we do not point to the start but to the springboard
         data_pointer =
@@ -165,7 +165,7 @@ defmodule Eflatbuffers.Writer do
             _ ->
               data_offset
           end
-        data_buffer_and_data(types, values, path, schema, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
+        data_buffer_and_data(types, values, path, meta, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end
 

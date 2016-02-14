@@ -56,7 +56,7 @@ defmodule Eflatbuffers.SchemaTest do
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
 
-    assert {:ok, { %{}, @expected_simple} } == res
+    assert {:ok, {%{}, @expected_simple} } == res
   end
 
   test "parse schema with table" do
@@ -93,7 +93,7 @@ defmodule Eflatbuffers.SchemaTest do
       |> Enum.join("\n")
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse()
-    assert {:ok, {Map.merge(@expected_table, @expected_enum) |> Map.merge(@expected_union), @expected_simple}} == res
+    assert {:ok, {(Map.merge(@expected_table, @expected_enum) |> Map.merge(@expected_union)), @expected_simple}} == res
   end
 
   test "decorate table" do
@@ -110,7 +110,7 @@ defmodule Eflatbuffers.SchemaTest do
               table_outer: {:table,
                %{fields: [table_field: {:table, %{name: :table_inner}}, table_vector: {:vector, %{type: {:table, %{name: :table_inner}}}}],
                  indices: %{table_field: {0, {:table, %{name: :table_inner}}}, table_vector: {1, {:vector, %{type: {:table, %{name: :table_inner}}}}}}}}}
-    assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
+    assert %{ entities: decorated_entities, options: %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
 
   test "decorate enumerable" do
@@ -125,7 +125,7 @@ defmodule Eflatbuffers.SchemaTest do
               table_outer: {:table,
                %{fields: [enum_field: {:enum, %{name: :enum_inner}}, enum_vector: {:vector, %{type: {:enum, %{name: :enum_inner}}}}],
                  indices: %{enum_field: {0, {:enum, %{name: :enum_inner}}}, enum_vector: {1, {:vector, %{type: {:enum, %{name: :enum_inner}}}}}}}}}
-    assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
+    assert %{ entities: decorated_entities, options: %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
 
   test "decorate union" do
@@ -140,7 +140,7 @@ defmodule Eflatbuffers.SchemaTest do
                %{fields: [union_field: {:union, %{name: :union_inner}}, union_vector: {:vector, %{type: {:union, %{name: :union_inner}}}}],
                  indices: %{union_field: {0, {:union, %{name: :union_inner}}}, union_vector: {2, {:vector, %{type: {:union, %{name: :union_inner}}}}}}}},
               union_inner: {:union, %{members: %{0 => :hello, 1 => :bye, :bye => 1, :hello => 0}}}}
-    assert {decorated_entities, %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
+    assert %{ entities: decorated_entities, options: %{}} == Eflatbuffers.Schema.decorate({parsed_entities, %{}})
   end
 
   test "parse doge schemas" do

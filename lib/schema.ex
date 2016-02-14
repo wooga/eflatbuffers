@@ -76,7 +76,7 @@ defmodule Eflatbuffers.Schema do
           Map.put(acc, key, {:union, %{ members: hash }})
       end
     )
-    {entities_decorated, options}
+    %{ entities: entities_decorated, options: options}
   end
 
   def table_options(fields, entities) do
