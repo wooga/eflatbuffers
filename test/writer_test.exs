@@ -50,12 +50,12 @@ defmodule EflatbuffersWriterTest do
 
   test "write vectors" do
     assert(
-      [<<3, 0, 0, 0>>, [[<<1>>, <<1>>, <<0>>], []], ] ==
-      Eflatbuffers.Writer.write({:vector, %{ type: { :bool, %{ default: 0 } } }}, [true, true, false], [], {%{}, %{}})
+      {[<<3, 0, 0, 0>>, [[<<1>>, <<1>>, <<0>>], []], ], %{}} ==
+      Eflatbuffers.Writer.write({:vector, %{ type: { :bool, %{ default: 0 } } }}, [true, true, false], [], %{})
     )
     assert(
-      [<<2, 0, 0, 0>>, [[<<8, 0, 0, 0>>, <<11, 0, 0, 0>>], [<<3, 0, 0, 0, 102, 111, 111>>, <<3, 0, 0, 0, 98, 97, 114>>]]] ==
-      Eflatbuffers.Writer.write({:vector, %{ type: { :string, %{} } }}, ["foo", "bar"], [], {%{}, %{}})
+      {[<<2, 0, 0, 0>>, [[<<8, 0, 0, 0>>, <<11, 0, 0, 0>>], [<<3, 0, 0, 0, 102, 111, 111>>, <<3, 0, 0, 0, 98, 97, 114>>]]], %{}} ==
+      Eflatbuffers.Writer.write({:vector, %{ type: { :string, %{} } }}, ["foo", "bar"], [], %{})
     )
   end
 
@@ -66,15 +66,18 @@ defmodule EflatbuffersWriterTest do
   ### intermediate data
 
   test "data buffer" do
-    data_buffer =  [
-      [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, []],
-      [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
-    ]
+    data_buffer =  {
+      [
+        [<<1>>, <<8, 0, 0, 0>>, <<11, 0, 0, 0>>, []],
+        [<<3, 0, 0, 0, 109, 97, 120>>, <<7, 0, 0, 0, 109, 105, 110, 105, 109, 117, 109>>]
+      ],
+      %{}
+    }
     reply = Eflatbuffers.Writer.data_buffer_and_data(
       [{:the_bool, {:bool, %{}}}, {:the_string, {:string, %{}}}, {:the_string2, {:string, %{}}}, {:the_bool2, {:bool, %{}}}],
       [true, "max", "minimum", nil],
       [],
-      '_'
+      %{}
     )
     assert( data_buffer == reply)
   end

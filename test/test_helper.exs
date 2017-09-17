@@ -21,7 +21,7 @@ defmodule TestHelpers do
 #IO.inspect {:fb_flatc, :erlang.iolist_to_binary(fb_flatc)}, limit: 1000
 
     fb_ex        = Eflatbuffers.write!(map, schema_ex)
-#IO.inspect {:fb_ex, :erlang.iolist_to_binary(fb_ex)}, limit: 1000
+#IO.inspect {:fb_ex, fb_ex}, limit: 1000
 #IO.inspect {:schema_ex, schema_ex}, limit: 1000
 #IO.inspect {:schema_type_fc, schema_type_fc}, limit: 1000
 #IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000

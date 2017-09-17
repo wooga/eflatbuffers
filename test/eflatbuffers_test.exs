@@ -111,7 +111,7 @@ defmodule EflatbuffersTest do
 
   test "table with table vector" do
     map = %{
-      inner: [%{value_inner: "aaa"}],
+      inner: [%{value_inner: "aaa"}, %{value_inner: "bbb"}],
     }
     assert_full_circle(:table_vector, map)
   end

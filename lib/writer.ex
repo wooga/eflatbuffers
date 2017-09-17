@@ -70,7 +70,8 @@ defmodule Eflatbuffers.Writer do
     # that it was a vector index
     type_options_without_default = Map.put(type_options, :default, nil)
     index_types = for i <- :lists.seq(0, (vector_length - 1)), do: {[i], {type, type_options_without_default}}
-    [ << vector_length :: little-size(32) >>, data_buffer_and_data(index_types, values, path, meta) ]
+    {data_buffer_and_data, meta_new} = data_buffer_and_data(index_types, values, path, meta)
+    { [ << vector_length :: little-size(32) >>, data_buffer_and_data ], meta_new}
   end
 
   def write({:enum, options = %{ name: enum_name }}, value, path, %{ entities: entities } = meta) when is_binary(value) do
@@ -118,12 +119,15 @@ defmodule Eflatbuffers.Writer do
     # we are putting the keys as {key} as a type
     # so if something goes wrong it's easy to see
     # that it was a map key
-    [data_buffer, data] = data_buffer_and_data(names_types, values, path, meta)
+    {[data_buffer, data], meta_new} = data_buffer_and_data(names_types, values, path, meta)
     vtable              = vtable(data_buffer)
-    vtable_offset         = << (:erlang.iolist_size(vtable) + 4) :: little-size(32) >>
-    data_buffer_length  = << :erlang.iolist_size([vtable_offset, data_buffer]) :: little-size(16) >>
+    data_offset         = :erlang.iolist_size([data_buffer, data, vtable])
+    meta_with_offset    = Map.put(meta_new, :global_offset, meta_new.global_offset + data_offset)
+    vtable_offset_int   = :erlang.iolist_size(vtable) + 4
+    vtable_offset       = << vtable_offset_int :: little-size(32) >>
     vtable_length       = << :erlang.iolist_size([vtable, vtable_offset])      :: little-size(16) >>
-    [vtable_length, data_buffer_length, vtable, vtable_offset, data_buffer, data]
+    data_buffer_length  = << :erlang.iolist_size([vtable_offset, data_buffer]) :: little-size(16) >>
+    {[vtable_length, data_buffer_length, vtable, vtable_offset, data_buffer, data], meta_with_offset}
   end
 
   # fail if nothing matches
@@ -136,8 +140,8 @@ defmodule Eflatbuffers.Writer do
   def data_buffer_and_data(types, values, path, meta) do
     data_buffer_and_data(types, values, path, meta, {[], [], 0})
   end
-  def data_buffer_and_data([], [], _path, _meta, {data_buffer, data, _}) do
-    [adjust_for_length(data_buffer), Enum.reverse(data)]
+  def data_buffer_and_data([], [], _path, meta, {data_buffer, data, _}) do
+    {[adjust_for_length(data_buffer), Enum.reverse(data)], meta}
   end
 
   # value is nil so we put a null pointer
@@ -151,10 +155,19 @@ defmodule Eflatbuffers.Writer do
     case Utils.scalar?(type) do
       true ->
         scalar_data = write(type, value, [name|path], meta)
+IO.inspect({:scalar_and_pointers, scalar_and_pointers})
         data_buffer_and_data(types, values, path, meta, {[scalar_data | scalar_and_pointers], data, data_offset})
       false ->
-        complex_data = write(type, value, [name|path], meta)
-        complex_data_length = :erlang.iolist_size(complex_data)
+        # writing might change the meta data
+        {complex_data, meta_from_write} =
+        case write(type, value, [name|path], meta) do
+          {data, changed_meta} ->
+            {data, changed_meta}
+          data ->
+            {data, meta}
+        end
+        complex_data_length     = :erlang.iolist_size([scalar_and_pointers, complex_data])
+        vtable_offset_increment = :erlang.iolist_size([scalar_and_pointers]) + complex_data_length + 4
         # for a table we do not point to the start but to the vtable_offset
         data_pointer =
           case type do
@@ -165,6 +178,7 @@ defmodule Eflatbuffers.Writer do
             _ ->
               data_offset
           end
+        IO.inspect({:data_pointer, data_pointer})
         data_buffer_and_data(types, values, path, meta, {[data_pointer | scalar_and_pointers], [complex_data | data], complex_data_length + data_offset})
     end
   end

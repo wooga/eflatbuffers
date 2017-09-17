@@ -16,7 +16,11 @@ defmodule Eflatbuffers do
   end
 
   def write!(map, %{options: options} = schema) do
-    root_table = [<< vtable_offset :: little-size(16) >> | _] = Eflatbuffers.Writer.write({:table, %{ name: options.root_type }}, map, [], schema)
+    # for caching we piggyback on the
+    # schema so it becomes meta
+    meta = Map.merge(schema, %{ vtable_offsets: %{}, global_offset: 0 })
+    {root_table, _meta_data} = Eflatbuffers.Writer.write({:table, %{ name: options.root_type }}, map, [], meta)
+    [<< vtable_offset :: little-size(16) >> | _] = root_table
 
     file_identifier =
       case Map.get(options, :file_identifier) do
