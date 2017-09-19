@@ -11,7 +11,7 @@ defmodule EflatbuffersTest.Fuzz do
   def fuzz_schema(schema_type) do
     map    = Eflatbuffers.Generator.map_from_schema(load_schema(schema_type))
     fb     = Eflatbuffers.write!(map, load_schema(schema_type))
-    map_re = Eflatbuffers.read!(:erlang.iolist_to_binary(fb), load_schema(schema_type))
+    map_re = Eflatbuffers.read!(fb, load_schema(schema_type))
     assert [] == compare_with_defaults(round_floats(map), round_floats(map_re), Eflatbuffers.parse_schema!(load_schema(schema_type)))
 
     assert_full_circle(schema_type, map)

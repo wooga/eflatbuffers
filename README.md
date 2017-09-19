@@ -37,11 +37,11 @@ iex(2)> schema = Eflatbuffers.Schema.parse!(schema_string)
         foreground: {0, {:table, %{name: :Color}}}}}}}, %{root_type: :Root}}
 ```
 
-Now we can serialize some data. Flatbuffers are generated as [iolists](http://learnyousomeerlang.com/buckets-of-sockets#io-lists).
+Now we can serialize some data.
 
 ```elixir
 iex(3)> color_scheme = %{foreground: %{red: 128, green: 20, blue: 255}, background: %{red: 0, green: 100, blue: 128}}
-iex(4)> color_scheme_fb =  Eflatbuffers.write!(color_scheme, schema) |> :erlang.iolist_to_binary
+iex(4)> color_scheme_fb =  Eflatbuffers.write!(color_scheme, schema)
 <<16, 0, 0, 0, 0, 0, 0, 0, 8, 0, 12, 0, 4, 0, 8, 0, 8, 0, 0, 0, 18, 0, 0, 0, 31,
   0, 0, 0, 10, 0, 7, 0, 4, 0, 5, 0, 6, 0, 10, 0, 0, 0, 128, 20, 255, 10, 0, 6,
   0, 0, ...>>

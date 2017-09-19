@@ -112,8 +112,7 @@ defmodule EflatbuffersRandomAccessTest do
   end
 
   def fb(data, schema_type) do
-    fb = Eflatbuffers.write!(data, load_schema(schema_type))
-    :erlang.iolist_to_binary(fb)
+    Eflatbuffers.write!(data, load_schema(schema_type))
   end
 
   def round_float(float) when is_float(float) do
@@ -124,4 +123,3 @@ defmodule EflatbuffersRandomAccessTest do
   end
 
 end
-

@@ -25,6 +25,7 @@ defmodule Eflatbuffers do
       end
 
     [<< (vtable_offset + 4 + byte_size(file_identifier)) :: little-size(32) >>, file_identifier, root_table]
+    |> :erlang.iolist_to_binary
   end
 
   def write(map, schema_str) when is_binary(schema_str) do
@@ -100,5 +101,3 @@ defmodule Eflatbuffers do
 
 
 end
-
-

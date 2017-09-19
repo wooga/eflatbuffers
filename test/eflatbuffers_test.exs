@@ -97,7 +97,7 @@ defmodule EflatbuffersTest do
     }
     # writing
     {:ok, reply} = Eflatbuffers.write(map, load_schema(:vector_of_enums))
-    assert(map == Eflatbuffers.read!(:erlang.iolist_to_binary(reply), load_schema(:vector_of_enums)))
+    assert(map == Eflatbuffers.read!(reply, load_schema(:vector_of_enums)))
   end
 
   test "table with union" do
