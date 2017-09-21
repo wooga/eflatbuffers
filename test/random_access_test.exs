@@ -101,7 +101,7 @@ defmodule EflatbuffersRandomAccessTest do
   end
 
   test "config" do
-    map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
+    map = Poison.decode!(File.read!("test/complex_schemas/config.json"), [keys: :atoms])
     fb = fb(map, {:doge, :config})
     assert "townhall" == get(fb, [:config, :town_sectors, :townSectors, 2, :minLevel, 0, :id],  {:doge, :config})
     assert "coins"    == get(fb, [:config, :quests, :quests, 0, :rewards, 0, :id],              {:doge, :config})

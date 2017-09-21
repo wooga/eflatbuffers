@@ -4,7 +4,7 @@ defmodule EflatbuffersTest do
   doctest Eflatbuffers
 
   def before_test do
-    flush_port_commands
+    flush_port_commands()
   end
 
   test "creating test data" do
@@ -122,7 +122,7 @@ defmodule EflatbuffersTest do
   #  }
   #  # writing
   #  {:ok, reply} = Eflatbuffers.write(map, load_schema(:nested_vector))
-  #  assert(map == Eflatbuffers.read!(:erlang.iolist_to_binary(reply), load_schema(:nested_vector)))
+  #  assert(map == Eflatbuffers.read!(reply, load_schema(:nested_vector)))
   #end
 
   test "fb with string" do
@@ -140,10 +140,10 @@ defmodule EflatbuffersTest do
 
   test "config fb" do
     {:ok, schema} = Eflatbuffers.Schema.parse(load_schema({:doge, :config}))
-    map = Poison.decode!(File.read!("test/doge_schemas/config.json"), [keys: :atoms])
+    map = Poison.decode!(File.read!("test/complex_schemas/config.json"), [keys: :atoms])
     # writing
     reply = Eflatbuffers.write!(map, schema)
-    reply_map  = Eflatbuffers.read!(:erlang.iolist_to_binary(reply), schema)
+    reply_map  = Eflatbuffers.read!(reply, schema)
     assert [] == compare_with_defaults(round_floats(map), round_floats(reply_map), schema)
 
     assert_full_circle({:doge, :config}, map)
@@ -176,17 +176,17 @@ defmodule EflatbuffersTest do
 
   test "no file identifier" do
     fb = Eflatbuffers.write!(%{}, load_schema(:no_identifier))
-    assert << _ :: size(4)-binary >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = :erlang.iolist_to_binary(fb)
+    assert << _ :: size(4)-binary >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = fb
   end
 
   test "file identifier" do
     fb_id    = Eflatbuffers.write!(%{}, load_schema(   :identifier))
     fb_no_id = Eflatbuffers.write!(%{}, load_schema(:no_identifier))
-    assert << _ :: size(32) >> <> "helo"           <> << _ :: binary >> = :erlang.iolist_to_binary(fb_id)
-    assert << _ :: size(32) >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = :erlang.iolist_to_binary(fb_no_id)
-    assert %{} == Eflatbuffers.read!(:erlang.iolist_to_binary(fb_id),    load_schema(:no_identifier))
+    assert << _ :: size(32) >> <> "helo"           <> << _ :: binary >> = fb_id
+    assert << _ :: size(32) >> <> << 0, 0, 0, 0 >> <> << _ :: binary >> = fb_no_id
+    assert %{} == Eflatbuffers.read!(fb_id, load_schema(:no_identifier))
     assert {:error, {:identifier_mismatch, %{data: <<0, 0, 0, 0>>, schema: "helo"}}} ==
-      catch_throw(Eflatbuffers.read!(:erlang.iolist_to_binary(fb_no_id), load_schema(:identifier)))
+      catch_throw(Eflatbuffers.read!(fb_no_id, load_schema(:identifier)))
     assert_full_circle(:identifier, %{})
     assert_full_circle(:no_identifier, %{})
   end

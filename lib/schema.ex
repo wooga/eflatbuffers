@@ -29,7 +29,7 @@ defmodule Eflatbuffers.Schema do
 
   def lexer(schema_str) do
     {:ok, tokens, _} =
-      to_char_list(schema_str)
+      to_charlist(schema_str)
       |> :schema_lexer.string
     tokens
   end

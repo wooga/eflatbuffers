@@ -1,6 +1,5 @@
 defmodule EflatbuffersWriterTest do
   use ExUnit.Case
-  import TestHelpers
 
   ### 8 bit types
 

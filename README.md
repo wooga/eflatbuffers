@@ -74,6 +74,7 @@ iex(6)> Eflatbuffers.get!(color_scheme_fb, [:background, :green], schema)
 * fb to json
 * file identifier
 * random access
+* validate file identifiers
 
 ### features not in flatc
 
@@ -85,7 +86,6 @@ iex(6)> Eflatbuffers.get!(color_scheme_fb, [:background, :green], schema)
 
 ### pending features
 
-* validate file identifiers
 * shared strings
 * shared vtables
 

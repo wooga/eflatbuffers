@@ -144,9 +144,9 @@ defmodule Eflatbuffers.SchemaTest do
   end
 
   test "parse doge schemas" do
-    File.ls!("test/doge_schemas")
+    File.ls!("test/complex_schemas")
     |> Enum.filter(fn(file) -> String.contains?(file, ".fbs") end)
-    |> Enum.map(fn(file) -> File.read!(Path.join("test/doge_schemas", file)) end)
+    |> Enum.map(fn(file) -> File.read!(Path.join("test/complex_schemas", file)) end)
     |> Enum.map(fn(schema_str) -> assert {:ok, _} = Eflatbuffers.Schema.parse(schema_str) end)
   end
 

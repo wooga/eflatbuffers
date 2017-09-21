@@ -4,7 +4,7 @@ defmodule TestHelpers do
   use ExUnit.Case
 
   def load_schema({:doge, type}) do
-    File.read!("test/doge_schemas/" <> Atom.to_string(type) <> ".fbs")
+    File.read!("test/complex_schemas/" <> Atom.to_string(type) <> ".fbs")
   end
 
   def load_schema(type) do
@@ -18,14 +18,14 @@ defmodule TestHelpers do
     schema_ex    = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
 
     fb_flatc     = reference_fb(schema_type_fc, map)
-#IO.inspect {:fb_flatc, :erlang.iolist_to_binary(fb_flatc)}, limit: 1000
+#IO.inspect {:fb_flatc, fb_flatc}, limit: 1000
 
     fb_ex        = Eflatbuffers.write!(map, schema_ex)
-#IO.inspect {:fb_ex, :erlang.iolist_to_binary(fb_ex)}, limit: 1000
+#IO.inspect {:fb_ex, fb_ex}, limit: 1000
 #IO.inspect {:schema_ex, schema_ex}, limit: 1000
 #IO.inspect {:schema_type_fc, schema_type_fc}, limit: 1000
-#IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(:erlang.iolist_to_binary(fb_ex), schema_ex)}, limit: 1000
-    map_ex_flatc = reference_map(schema_type_fc, :erlang.iolist_to_binary(fb_ex))
+#IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(fb_ex, schema_ex)}, limit: 1000
+    map_ex_flatc = reference_map(schema_type_fc, fb_ex)
 
     map_flatc_ex = Eflatbuffers.read!(fb_flatc, schema_ex)
 
@@ -34,7 +34,7 @@ defmodule TestHelpers do
   end
 
   def assert_eq(schema, map, binary) do
-    map_looped = reference_map(schema, :erlang.iolist_to_binary(binary))
+    map_looped = reference_map(schema, binary)
     assert [] == compare_with_defaults(round_floats(map), round_floats(map_looped), Eflatbuffers.Schema.parse!(load_schema(schema)))
   end
 
@@ -75,7 +75,7 @@ defmodule TestHelpers do
   def flush_port_commands do
     receive do
       {_port, {:data, _}}  ->
-        flush_port_commands
+        flush_port_commands()
     after 0 ->
       :ok
     end

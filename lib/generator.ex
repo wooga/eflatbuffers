@@ -32,7 +32,7 @@ defmodule Eflatbuffers.Generator do
 
   def gen_type(_schema, :bool, opts), do: random_bool() |> maybe_default(false, opts)
 
-  def gen_type(_schema, :string, opts), do: random_string(:random.uniform(opts.max_string_len))
+  def gen_type(_schema, :string, opts), do: random_string(:rand.uniform(opts.max_string_len))
 
   def gen_type(schema, {:vector, type}, opts) do
     1..opts.max_vector_len
@@ -51,7 +51,7 @@ defmodule Eflatbuffers.Generator do
 
   def gen_type(schema, {:table, types}, opts) do
     types
-    |> Enum.filter(fn(_) -> :random.uniform() > opts.skip_key_probability end)
+    |> Enum.filter(fn(_) -> :rand.uniform() > opts.skip_key_probability end)
     |> Enum.map(fn ({name, type}) ->
         case gen_type(schema, type, opts) do
           [union_type, union_data] ->
@@ -90,11 +90,11 @@ defmodule Eflatbuffers.Generator do
   end
 
   def random_float(_) do
-    :random.uniform()
+    :rand.uniform()
   end
 
   def random_bool() do
-    case :random.uniform(2) do
+    case :rand.uniform(2) do
       1 -> false
       2 -> true
     end
@@ -106,7 +106,7 @@ defmodule Eflatbuffers.Generator do
       <> "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       <> "0123456789"
     alphabet_length = alphabet |> String.length()
-    Enum.map_join(1..size, fn(_) -> alphabet |> String.at(:random.uniform( alphabet_length ) - 1) end)
+    Enum.map_join(1..size, fn(_) -> alphabet |> String.at(:rand.uniform( alphabet_length ) - 1) end)
   end
 
   def random_bytes(size) do
@@ -115,7 +115,7 @@ defmodule Eflatbuffers.Generator do
 
   def maybe_default(value, default, opts) do
     prob = opts.default_probability
-    case :random.uniform do
+    case :rand.uniform do
       x when x < prob -> default
       _ -> value
     end
