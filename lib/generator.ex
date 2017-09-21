@@ -8,28 +8,28 @@ defmodule Eflatbuffers.Generator do
   }
 
   def map_from_schema(schema_str, opts \\ %{}) when is_binary(schema_str) do
-    {:ok, {schema, %{root_type: root_type}}} = 
+    {:ok, {schema, %{root_type: root_type}}} =
       schema_str
       |> Eflatbuffers.Schema.lexer
       |> :schema_parser.parse
-    gen_type(schema, root_type, Map.merge(@defaults, opts))  
+    gen_type(schema, root_type, Map.merge(@defaults, opts))
   end
 
   def gen_type(_schema, :byte, opts), do: random_num_signed(1) |> maybe_default(0, opts)
   def gen_type(_schema, :ubyte, opts), do: random_num_unsigned(1) |> maybe_default(0, opts)
-  
+
   def gen_type(_schema, :short, opts), do: random_num_signed(2) |> maybe_default(0, opts)
   def gen_type(_schema, :ushort, opts), do: random_num_unsigned(2) |> maybe_default(0, opts)
 
-  def gen_type(_schema, :int, opts), do: random_num_signed(4) |> maybe_default(0, opts)  
+  def gen_type(_schema, :int, opts), do: random_num_signed(4) |> maybe_default(0, opts)
   def gen_type(_schema, :uint, opts), do: random_num_unsigned(4) |> maybe_default(0, opts)
 
   def gen_type(_schema, :long, opts), do: random_num_signed(8) |> maybe_default(0, opts)
   def gen_type(_schema, :ulong, opts), do: random_num_signed(8) |> maybe_default(0, opts)
-  
+
   def gen_type(_schema, :float, opts), do: random_float(4) |> maybe_default(0.0, opts)
   def gen_type(_schema, :double, opts), do: random_float(8) |> maybe_default(0.0, opts)
-  
+
   def gen_type(_schema, :bool, opts), do: random_bool() |> maybe_default(false, opts)
 
   def gen_type(_schema, :string, opts), do: random_string(:random.uniform(opts.max_string_len))
@@ -40,7 +40,7 @@ defmodule Eflatbuffers.Generator do
   end
 
   def gen_type(_schema, {{:enum, _type}, enum_options}, _opts) do
-    [elem] = Enum.take_random(enum_options, 1) 
+    [elem] = Enum.take_random(enum_options, 1)
     Atom.to_string(elem)
   end
 
@@ -52,11 +52,11 @@ defmodule Eflatbuffers.Generator do
   def gen_type(schema, {:table, types}, opts) do
     types
     |> Enum.filter(fn(_) -> :random.uniform() > opts.skip_key_probability end)
-    |> Enum.map(fn ({name, type}) -> 
+    |> Enum.map(fn ({name, type}) ->
         case gen_type(schema, type, opts) do
-          [union_type, union_data] -> 
+          [union_type, union_data] ->
             [{String.to_atom(Atom.to_string(name) <> "_type"), union_type}, {name, union_data}]
-          data -> 
+          data ->
             {name, data}
         end
       end)
@@ -75,21 +75,21 @@ defmodule Eflatbuffers.Generator do
     end
   end
 
-  ### random generators ###  
-  
-  def random_num_signed(size) do     
+  ### random generators ###
+
+  def random_num_signed(size) do
     bit_size = size * 8
     << num :: signed-size(bit_size) >> = random_bytes(size)
     num
   end
 
-  def random_num_unsigned(size) do    
+  def random_num_unsigned(size) do
     bit_size = size * 8
     << num :: unsigned-size(bit_size) >> = random_bytes(size)
     num
   end
 
-  def random_float(_) do     
+  def random_float(_) do
     :random.uniform()
   end
 
@@ -101,7 +101,7 @@ defmodule Eflatbuffers.Generator do
   end
 
   def random_string(size) do
-    alphabet =  
+    alphabet =
       "abcdefghijklmnopqrstuvwxyz"
       <> "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       <> "0123456789"
@@ -110,7 +110,7 @@ defmodule Eflatbuffers.Generator do
   end
 
   def random_bytes(size) do
-    :crypto.rand_bytes(size)
+    :crypto.strong_rand_bytes(size)
   end
 
   def maybe_default(value, default, opts) do
