@@ -37,7 +37,7 @@ iex(1)> schema = File.read!(path_to_schema) |> Eflatbuffers.Schema.parse!()
         foreground: {0, {:table, %{name: :Color}}}}}}}, %{root_type: :Root}}
 ```
 
-Serialize some data:
+Serializing data:
 
 ```elixir
 iex(2)> color_scheme = %{foreground: %{red: 128, green: 20, blue: 255}, background: %{red: 0, green: 100, blue: 128}}
@@ -47,12 +47,16 @@ iex(3)> color_scheme_fb = Eflatbuffers.write!(color_scheme, schema)
   0, 0, ...>>
 ```
 
-So we can `read` the whole thing which converts it back into a map. Or we can `get` a portion with means it seeks into the flatbuffer and only deserializes the part below the path.
+So we can `read` the whole thing which converts it back into a map:
 
 ```elixir
 iex(4)> Eflatbuffers.read!(color_scheme_fb, schema)
 %{background: %{blue: 128, green: 100, red: 0},
   foreground: %{blue: 255, green: 20, red: 128}}
+```
+
+Or we can `get` a portion with means it seeks into the flatbuffer and only deserializes the part below the path:
+```elixir
 iex(5)> Eflatbuffers.get!(color_scheme_fb, [:background], schema)
 %{blue: 128, green: 100, red: 0}
 iex(6)> Eflatbuffers.get!(color_scheme_fb, [:background, :green], schema)
@@ -61,7 +65,7 @@ iex(6)> Eflatbuffers.get!(color_scheme_fb, [:background, :green], schema)
 
 ## Comparing Eflatbufers to flatc
 
-### features from flatc
+### features both in Eflatbufers and flatc
 
 * tables
 * scalars
@@ -72,26 +76,23 @@ iex(6)> Eflatbuffers.get!(color_scheme_fb, [:background, :green], schema)
 * defaults
 * json to fb
 * fb to json
-* file identifier
+* file identifier + validation
 * random access
 * validate file identifiers
 
-### features not in flatc
+### features only in Eflatbuffers
 
 * vectors of enums
 
-### deviation from flatbuffers
-
-* default values are written to json
-
-### pending features
+### features only in flatc
 
 * shared strings
 * shared vtables
-
-### not planned
-
 * includes
 * alignment
 * additional attributes
 * structs
+
+### deviation of Eflatbuffers from flatc
+
+* default values are written to json
