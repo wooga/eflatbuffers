@@ -23,7 +23,7 @@ root_type Root;
 
 Parsing the schema:
 ```elixir
-iex(1)> schema = File.read!(path_to_schema) |> Eflatbuffers.Schema.parse!()
+iex(1)> schema = File.read!(path_to_schema) |> Eflatbuffers.Schema.parse!
 {%{Color: {:table,
     %{fields: [red: {:ubyte, %{default: 0}}, green: {:ubyte, %{default: 0}},
        blue: {:ubyte, %{default: 0}}],
