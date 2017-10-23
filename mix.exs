@@ -16,7 +16,7 @@ defmodule Eflatbuffers.Mixfile do
   defp package() do
     [
       name: "eflatbuffers",
-      files: ["lib", "priv", "mix.exs", "README*", "readme*", "LICENSE*", "license*"],
+      files: ["config", "lib", "src", "test", "mix.exs", "README*", "LICENSE*"],
       maintainers: ["Florian Odronitz"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/wooga/eflatbuffers"}
