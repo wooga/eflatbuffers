@@ -6,6 +6,8 @@ STRING          = [a-zA-Z0-9_\.]+
 BOOL            = (true|false)
 WS              = [\s\t]+
 NL              = [\n\r]+
+COMMENT         = //[^\n\r]+
+BLOCK_COMMENT   = /\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/
 
 Rules.
 
@@ -26,6 +28,8 @@ file_extension{WS}  : {token, {file_extension, TokenLine}}.
 {STRING}        : {token, {string, TokenLine, TokenChars}}.
 {WS}            : skip_token.
 {NL}            : skip_token.
+{COMMENT}       : skip_token.
+{BLOCK_COMMENT} : skip_token.
 
 \{    : {token, {'{',  TokenLine}}.
 \}    : {token, {'}',  TokenLine}}.
