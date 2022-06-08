@@ -28,7 +28,7 @@ defmodule Eflatbuffers.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger]]
+    [extra_applications: [:logger, :crypto]]
   end
 
   # Dependencies can be Hex packages:
@@ -47,7 +47,7 @@ defmodule Eflatbuffers.Mixfile do
        branch: "master",
        only: :test,
        override: true},
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false}
     ]
   end
 end
