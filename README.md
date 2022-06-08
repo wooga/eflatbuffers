@@ -92,6 +92,8 @@ iex(6)> Eflatbuffers.get!(color_scheme_fb, [:background, :green], schema)
 * alignment
 * additional attributes
 * structs
+* enum defaults
+* enum custom indexes
 
 ### deviation of Eflatbuffers from flatc
 
