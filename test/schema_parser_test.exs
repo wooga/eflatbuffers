@@ -50,6 +50,10 @@ defmodule Eflatbuffers.SchemaTest do
     }
   }
 
+  @expected_struct %{
+    Vector: {:struct, [x: :float, y: :float, z: :float]}
+  }
+
   test "parse simple schema" do
     res =
       File.read!("test/schemas/parser_simple.fbs")
@@ -84,6 +88,16 @@ defmodule Eflatbuffers.SchemaTest do
       |> :schema_parser.parse()
 
     assert {:ok, {@expected_union, %{}}} == res
+  end
+
+  test "parse schema with struct" do
+    res =
+      File.read!("test/schemas/parser_struct.fbs")
+      |> Eflatbuffers.Schema.lexer()
+      |> :schema_parser.parse()
+      |> IO.inspect()
+
+    assert {:ok, {@expected_struct, %{}}} == res
   end
 
   test "parse a whole schema" do
