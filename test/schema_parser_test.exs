@@ -54,6 +54,8 @@ defmodule Eflatbuffers.SchemaTest do
     Vector: {:struct, [x: :float, y: :float, z: :float]}
   }
 
+  @expected_attribute %{State: {:table, [active: {:bool, false}]}}
+
   test "parse simple schema" do
     res =
       File.read!("test/schemas/parser_simple.fbs")
@@ -95,9 +97,17 @@ defmodule Eflatbuffers.SchemaTest do
       File.read!("test/schemas/parser_struct.fbs")
       |> Eflatbuffers.Schema.lexer()
       |> :schema_parser.parse()
-      |> IO.inspect()
 
     assert {:ok, {@expected_struct, %{}}} == res
+  end
+
+  test "parse schema with additional attributes" do
+    res =
+      File.read!("test/schemas/parser_attribute.fbs")
+      |> Eflatbuffers.Schema.lexer()
+      |> :schema_parser.parse()
+
+    assert {:ok, {@expected_attribute, %{attribute: "priority", root_type: :State}}} == res
   end
 
   test "parse a whole schema" do

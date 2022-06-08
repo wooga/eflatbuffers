@@ -1,0 +1,9 @@
+// Currently only supports one attribute per schema
+
+attribute "priority";
+
+table State {
+  active:bool = false (deprecated, priority: 1);
+}
+
+root_type State;
