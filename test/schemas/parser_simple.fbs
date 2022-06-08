@@ -1,3 +1,5 @@
+// A comment
+
 namespace SyGame.Play ;     
 include "some_other.fbs";   
 
