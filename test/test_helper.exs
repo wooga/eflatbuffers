@@ -11,33 +11,41 @@ defmodule TestHelpers do
     File.read!("test/schemas/" <> Atom.to_string(type) <> ".fbs")
   end
 
-  def assert_full_circle(schema_type, map) do
-    assert_full_circle(schema_type, schema_type, map)
+  def assert_full_circle(schema_reference, input) do
+    assert_full_circle(schema_reference, schema_reference, input)
   end
 
-  def assert_full_circle(schema_type_ex, schema_type_fc, map) do
-    schema_ex = Eflatbuffers.Schema.parse!(load_schema(schema_type_ex))
+  def assert_full_circle(schema_reference, fbp_schema_reference, input) do
+    schema = Eflatbuffers.Schema.parse!(load_schema(schema_reference))
 
-    fb_flatc = reference_fb(schema_type_fc, map)
-    # IO.inspect {:fb_flatc, fb_flatc}, limit: 1000
+    fbp_write = flatbuffer_port_write(fbp_schema_reference, input)
 
-    fb_ex = Eflatbuffers.write!(map, schema_ex)
-    # IO.inspect {:fb_ex, fb_ex}, limit: 1000
-    # IO.inspect {:schema_ex, schema_ex}, limit: 1000
-    # IO.inspect {:schema_type_fc, schema_type_fc}, limit: 1000
-    # IO.inspect {:fb_ex_ex,  Eflatbuffers.read!(fb_ex, schema_ex)}, limit: 1000
-    map_ex_flatc = reference_map(schema_type_fc, fb_ex)
+    # IO.inspect(fbp_write, label: "FBP WRITE")
 
-    map_flatc_ex = Eflatbuffers.read!(fb_flatc, schema_ex)
+    eflat_write = Eflatbuffers.write!(input, schema)
 
-    diff =
-      compare_with_defaults(round_floats(map_ex_flatc), round_floats(map_flatc_ex), schema_ex)
+    # IO.inspect(eflat_write, label: "EFLAT WRITE")
+
+    # IO.inspect(Eflatbuffers.read!(eflat_write, schema), label: "EFLAT READ OF EFLAT WRITE")
+
+    fbp_read = flatbuffer_port_read(fbp_schema_reference, eflat_write)
+
+    # IO.inspect(fbp_read, label: "FBP READ OF EFLAT WRITE")
+
+    eflat_read = Eflatbuffers.read!(fbp_write, schema)
+
+    # IO.inspect(eflat_read, label: "EFLAT READ OF FBP WRITE")
+
+    # FBP READ OF EFLAT WRITE == EFLAT READ OF FBP WRITE
+    diff = compare_with_defaults(round_floats(fbp_read), round_floats(eflat_read), schema)
+
+    # IO.inspect(diff, label: "DIFF")
 
     assert [] == diff
   end
 
   def assert_eq(schema, map, binary) do
-    map_looped = reference_map(schema, binary)
+    map_looped = flatbuffer_port_read(schema, binary)
 
     assert [] ==
              compare_with_defaults(
@@ -47,7 +55,7 @@ defmodule TestHelpers do
              )
   end
 
-  def reference_fb(schema, data) when is_map(data) do
+  def flatbuffer_port_write(schema, data) when is_map(data) do
     json = Poison.encode!(data)
     port = FlatbufferPort.open_port()
     true = FlatbufferPort.load_schema(port, load_schema(schema))
@@ -57,16 +65,13 @@ defmodule TestHelpers do
     reply
   end
 
-  def reference_json(schema, data) when is_binary(data) do
+  def flatbuffer_port_read(schema, data) do
     port = FlatbufferPort.open_port()
     true = FlatbufferPort.load_schema(port, load_schema(schema))
     :ok = port_response(port)
     true = FlatbufferPort.fb_to_json(port, data)
-    port_response(port)
-  end
+    {:ok, json} = port_response(port)
 
-  def reference_map(schema, data) do
-    {:ok, json} = reference_json(schema, data)
     Poison.decode!(json, [:return_maps, keys: :atoms])
   end
 
