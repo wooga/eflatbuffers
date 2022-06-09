@@ -154,9 +154,43 @@ defmodule Eflatbuffers.Writer do
     [vtable_length, data_buffer_length, vtable, springboard, data_buffer, data]
   end
 
+  def write({:struct, %{name: struct_name}}, data, path, {tables, _options} = schema)
+      when is_map(data) and is_atom(struct_name) do
+    {:struct, options} = Map.get(tables, struct_name)
+    fields = options.fields
+
+    {names_types, values} =
+      fields
+      |> Enum.reduce({[], []}, fn
+        {name, type}, {type_acc, value_acc} ->
+          {[{{name}, type} | type_acc], [Map.get(data, name) | value_acc]}
+      end)
+
+    collect_struct_data(names_types, values, path, schema)
+  end
+
   # fail if nothing matches
   def write({type, _options}, data, path, _) do
     throw({:error, {:wrong_type, type, data, Enum.reverse(path)}})
+  end
+
+  def collect_struct_data(types, values, path, schema) do
+    collect_struct_data(types, values, path, schema, [])
+  end
+
+  def collect_struct_data([], [], _path, _schema, data) do
+    data
+  end
+
+  def collect_struct_data(
+        [{name, type} | types],
+        [value | values],
+        path,
+        schema,
+        data
+      ) do
+    scalar_data = write(type, value, [name | path], schema)
+    collect_struct_data(types, values, path, schema, [scalar_data | data])
   end
 
   # build up [data_buffer, data]
@@ -293,10 +327,4 @@ defmodule Eflatbuffers.Writer do
         )
     end
   end
-
-  def scalar?(:string), do: false
-  def scalar?({:vector, _}), do: false
-  def scalar?({:table, _}), do: false
-  def scalar?({:enum, _}), do: true
-  def scalar?(_), do: true
 end

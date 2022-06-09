@@ -52,7 +52,6 @@ struct_fields -> struct_field ';' struct_fields  : [ '$1' | '$3' ].
 struct_field -> struct_key_def  : '$1'.
 
 struct_key_def -> string ':' string              : { get_value_atom('$1'), get_value_atom('$3') }.
-struct_key_def -> string ':' '[' string ']'      : { get_value_atom('$1'), {vector, get_value_atom('$4')}}.
 
 % enums + unions
 atoms -> atom             : [ '$1' ].

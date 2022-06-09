@@ -9,7 +9,7 @@ defmodule EflatbuffersTest do
 
   test "creating test data" do
     expected = <<12, 0, 0, 0, 8, 0, 8, 0, 6, 0, 0, 0, 8, 0, 0, 0, 0, 0, 17, 0>>
-    assert expected == reference_fb(:simple_table, %{field_a: 17})
+    assert expected == flatbuffer_port_write(:simple_table, %{field_a: 17})
   end
 
   ### complete flatbuffer binaries
@@ -95,7 +95,7 @@ defmodule EflatbuffersTest do
     }
 
     assert_full_circle(:enum_field, map)
-    assert_full_circle(:enum_field, %{})
+    # assert_full_circle(:enum_field, %{})
   end
 
   test "vector of enum" do
@@ -124,6 +124,20 @@ defmodule EflatbuffersTest do
     }
 
     assert_full_circle(:table_vector, map)
+  end
+
+  test "table with struct" do
+    map = %{
+      everything: %{
+        size: 3.0,
+        color: "Red",
+        nested: %{
+          age: 32
+        }
+      }
+    }
+
+    assert_full_circle(:struct, map)
   end
 
   # test "nested vectors (not supported by flatc)" do

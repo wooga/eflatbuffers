@@ -174,7 +174,7 @@ defmodule Eflatbuffers.SchemaTest do
         {:enum,
          %{
            members: %{0 => :Red, 1 => :Green, 2 => :Blue, :Blue => 2, :Green => 1, :Red => 0},
-           type: {:byte, %{default: 0}}
+           type: {:byte, %{}}
          }},
       table_outer:
         {:table,

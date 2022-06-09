@@ -122,9 +122,70 @@ defmodule Eflatbuffers.Reader do
     read_table_fields(fields, vtable, data_buffer_pointer, data, schema)
   end
 
+  def read(
+        {:struct, %{name: struct_name}},
+        vtable_pointer,
+        data,
+        {tables, _options} = schema
+      )
+      when is_atom(struct_name) do
+    {:struct, %{fields: fields}} = Map.get(tables, struct_name)
+
+    {values, _} = read_struct_elements(data, vtable_pointer, fields, schema)
+    values
+  end
+
   # fail if nothing matches
   def read({type, _}, _, _, _) do
     throw({:error, {:unknown_type, type}})
+  end
+
+  def read_struct_elements(data, pointer, fields, schema) do
+    read_struct_elements(data, pointer, fields, schema, %{}, 0)
+  end
+
+  def read_struct_elements(_, _, [], _, elements, struct_size) do
+    {elements, struct_size}
+  end
+
+  def read_struct_elements(
+        data,
+        pointer,
+        [{name, {:struct, %{name: struct_name}}} | fields],
+        {tables, _options} = schema,
+        elements,
+        parent_struct_size
+      ) do
+    {:struct, %{fields: struct_fields}} = Map.get(tables, struct_name)
+    {value, struct_size} = read_struct_elements(data, pointer, struct_fields, schema)
+
+    read_struct_elements(
+      data,
+      pointer + struct_size,
+      fields,
+      schema,
+      Map.put(elements, name, value),
+      parent_struct_size + struct_size
+    )
+  end
+
+  def read_struct_elements(data, pointer, [{name, type} | fields], schema, elements, struct_size) do
+    value = read(type, pointer, data, schema)
+
+    offset =
+      Utils.extract_scalar_type(type, schema)
+      |> Utils.scalar_size()
+
+    struct_size = struct_size + offset
+
+    read_struct_elements(
+      data,
+      pointer + offset,
+      fields,
+      schema,
+      Map.put(elements, name, value),
+      struct_size
+    )
   end
 
   def read_vector_elements(_, _, _, 0, _, _) do

@@ -1,0 +1,17 @@
+enum Color : byte { Red, Green, Blue }
+
+struct Nest {
+  age:int;
+}
+
+struct Everything {
+  color:Color;
+  nested:Nest;
+  size:float; 
+}
+
+table MyTable {
+  everything:Everything;
+}
+
+root_type MyTable;

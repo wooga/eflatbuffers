@@ -78,7 +78,7 @@ defmodule Eflatbuffers.Schema do
                 end
               )
 
-            Map.put(acc, key, {:enum, %{type: {type, %{default: 0}}, members: hash}})
+            Map.put(acc, key, {:enum, %{type: {type, %{}}, members: hash}})
 
           {key, {:union, fields}}, acc ->
             hash =
@@ -91,10 +91,28 @@ defmodule Eflatbuffers.Schema do
               )
 
             Map.put(acc, key, {:union, %{members: hash}})
+
+          {key, {:struct, fields}}, acc ->
+            Map.put(acc, key, {:struct, struct_options(fields, entities)})
         end
       )
 
     {entities_decorated, options}
+  end
+
+  # There are no relevant options for structs, but keep the shape consistent with everything else
+  def struct_options(fields, entities) do
+    %{
+      fields:
+        Enum.map(fields, fn
+          {key, type} ->
+            case Map.get(entities, type) do
+              nil -> {key, {type, %{}}}
+              {{:enum, _enum_type}, _enum_values} -> {key, {:enum, %{name: type}}}
+              {:struct, _struct_fields} -> {key, {:struct, %{name: type}}}
+            end
+        end)
+    }
   end
 
   def table_options(fields, entities) do
@@ -161,6 +179,9 @@ defmodule Eflatbuffers.Schema do
 
       {:union, _} ->
         {:union, %{name: field_value}}
+
+      {:struct, _} ->
+        {:struct, %{name: field_value}}
     end
   end
 
