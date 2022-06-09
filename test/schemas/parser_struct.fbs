@@ -1,5 +1,12 @@
-struct Vector {
-  x:float;
-  y:float;
-  z:float;
+
+enum Color : byte { Red, Green, Blue }
+
+struct Nest {
+    age:int;
+}
+
+struct Everything {
+    size:float;
+    color:Color;
+    nested:Nest;
 }

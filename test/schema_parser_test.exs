@@ -51,7 +51,9 @@ defmodule Eflatbuffers.SchemaTest do
   }
 
   @expected_struct %{
-    Vector: {:struct, [x: :float, y: :float, z: :float]}
+    Color: {{:enum, :byte}, [:Red, :Green, :Blue]},
+    Everything: {:struct, [size: :float, color: :Color, nested: :Nest]},
+    Nest: {:struct, [age: :int]}
   }
 
   @expected_attribute %{State: {:table, [active: {:bool, false}]}}
