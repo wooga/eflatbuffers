@@ -1,9 +1,29 @@
 // Currently only supports one attribute per schema
+// Does not support built in attributes
 
 attribute "priority";
+attribute "name";
 
-table State {
+enum Color (priority: 3) : byte { Red, Green, Blue }
+union Animal (priority: 4) { Dog, Cat }
+
+table Dog {
+  age:int;
+}
+
+table Cat {
+  lives:int;
+}
+
+// TODO
+// struct Nest (priority: 3) {
+//   color:Color;
+// }
+
+table State (priority: 2, name: Foo) {
   active:bool = false (deprecated, priority: 1);
+  color:Color;
+  animal:Animal;
 }
 
 root_type State;

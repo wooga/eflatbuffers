@@ -18,11 +18,16 @@ option -> file_identifier quote string quote ';' : #{get_name('$1') => get_value
 option -> file_extension quote string quote ';'  : #{get_name('$1') => get_value_bin('$3')}.
 
 % definitions
-definition -> table string '{' fields '}'           : #{get_value_atom('$2') => {table, '$4'} }.
-definition -> table string '{' '}'                  : #{get_value_atom('$2') => {table, []} }.
-definition -> struct string '{' struct_fields '}'   : #{get_value_atom('$2') => {struct, '$4'} }.
-definition -> enum string ':' string '{' atoms '}'  : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
-definition -> union string '{' atoms '}'            : #{get_value_atom('$2') => {union, '$4'} }.
+definition -> table string '{' fields '}'                             : #{get_value_atom('$2') => {table, '$4'} }.
+definition -> table string '{' '}'                                    : #{get_value_atom('$2') => {table, []} }.
+definition -> table string '(' attributes ')' '{' fields '}'          : #{get_value_atom('$2') => {table, '$7'} }.
+definition -> table string '(' attributes ')' '{' '}'                 : #{get_value_atom('$2') => {table, []} }.
+definition -> struct string '{' struct_fields '}'                     : #{get_value_atom('$2') => {struct, '$4'} }.
+definition -> struct string '(' attributes ')' '{' struct_fields '}'  : #{get_value_atom('$2') => {struct, '$7'} }.
+definition -> enum string ':' string '{' atoms '}'                    : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
+definition -> enum string '(' attributes ')' ':' string '{' atoms '}' : #{get_value_atom('$2') => {{enum, get_value_atom('$7')}, '$9' }}.
+definition -> union string '{' atoms '}'                              : #{get_value_atom('$2') => {union, '$4'} }.
+definition -> union string '(' attributes ')' '{' atoms '}'           : #{get_value_atom('$2') => {union, '$7'} }.
 
 % tables
 fields -> field ';'         : [ '$1' ].

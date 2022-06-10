@@ -108,6 +108,7 @@ defmodule Eflatbuffers.SchemaTest do
       File.read!("test/schemas/parser_attribute.fbs")
       |> Eflatbuffers.Schema.lexer()
       |> :schema_parser.parse()
+      |> IO.inspect()
 
     assert {:ok, {@expected_attribute, %{attribute: "priority", root_type: :State}}} == res
   end
