@@ -3,7 +3,7 @@ Terminals  table struct enum union namespace root_type include attribute file_id
 Rootsymbol root.
 
 root -> definition      : {'$1', #{}}.
-root -> option          : {#{}, '$1'}.
+root -> option          : {#{}, init_opt('$1')}.
 root -> root definition : add_def('$1', '$2').
 root -> root option     : add_opt('$1', '$2').
 
@@ -12,38 +12,38 @@ option -> namespace string ';' : #{get_name('$1') => get_value_atom('$2')}.
 option -> root_type string ';' : #{get_name('$1') => get_value_atom('$2')}.
 
 % options (quoted)
-option -> include quote string quote ';'         : #{get_name('$1') => get_value_bin('$3')}.
-option -> attribute quote string quote ';'       : #{get_name('$1') => get_value_bin('$3')}.
-option -> file_identifier quote string quote ';' : #{get_name('$1') => get_value_bin('$3')}.
-option -> file_extension quote string quote ';'  : #{get_name('$1') => get_value_bin('$3')}.
+option -> include quote string quote ';'         : {get_name('$1'), get_value_bin('$3')}.
+option -> attribute quote string quote ';'       : {get_name('$1'), get_value_bin('$3')}.
+option -> file_identifier quote string quote ';' : {get_name('$1'), get_value_bin('$3')}.
+option -> file_extension quote string quote ';'  : {get_name('$1'), get_value_bin('$3')}.
 
 % definitions
 definition -> table string '{' fields '}'                             : #{get_value_atom('$2') => {table, '$4'} }.
 definition -> table string '{' '}'                                    : #{get_value_atom('$2') => {table, []} }.
-definition -> table string '(' attributes ')' '{' fields '}'          : #{get_value_atom('$2') => {table, '$7'} }.
-definition -> table string '(' attributes ')' '{' '}'                 : #{get_value_atom('$2') => {table, []} }.
+definition -> table string '(' attributes ')' '{' fields '}'          : #{get_value_atom('$2') => {table, '$7', '$4'} }.
+definition -> table string '(' attributes ')' '{' '}'                 : #{get_value_atom('$2') => {table, [], '$4'} }.
 definition -> struct string '{' struct_fields '}'                     : #{get_value_atom('$2') => {struct, '$4'} }.
-definition -> struct string '(' attributes ')' '{' struct_fields '}'  : #{get_value_atom('$2') => {struct, '$7'} }.
+definition -> struct string '(' attributes ')' '{' struct_fields '}'  : #{get_value_atom('$2') => {struct, '$7', '4'} }.
 definition -> enum string ':' string '{' atoms '}'                    : #{get_value_atom('$2') => {{enum, get_value_atom('$4')}, '$6' }}.
-definition -> enum string '(' attributes ')' ':' string '{' atoms '}' : #{get_value_atom('$2') => {{enum, get_value_atom('$7')}, '$9' }}.
+definition -> enum string '(' attributes ')' ':' string '{' atoms '}' : #{get_value_atom('$2') => {{enum, get_value_atom('$7')}, '$9', '$4' }}.
 definition -> union string '{' atoms '}'                              : #{get_value_atom('$2') => {union, '$4'} }.
-definition -> union string '(' attributes ')' '{' atoms '}'           : #{get_value_atom('$2') => {union, '$7'} }.
+definition -> union string '(' attributes ')' '{' atoms '}'           : #{get_value_atom('$2') => {union, '$7', '$4'} }.
 
 % tables
 fields -> field ';'         : [ '$1' ].
 fields -> field ';' fields  : [ '$1' | '$3' ].
 
 field -> key_def                    : '$1'.
-field -> key_def '(' attributes ')' : '$1'.
+field -> key_def '(' attributes ')' : {'$1', '$3'}.
 
 key_def -> string ':' string              : { get_value_atom('$1'), get_value_atom('$3') }.
 key_def -> string ':' '[' string ']'      : { get_value_atom('$1'), {vector, get_value_atom('$4')}}.
 key_def -> string ':' string '=' value    : { get_value_atom('$1'), {get_value_atom('$3'), '$5' }}.
 
-attributes -> attributes ',' attribute_def. %ignore
-attributes -> attribute_def.                %ignore
-attribute_def -> string ':' value.          %ignore
-attribute_def -> string.                    %ignore
+attributes -> attributes ',' attribute_def  : [ '$3' | '$1' ].
+attributes -> attribute_def                 : [ '$1' ].
+attribute_def -> string ':' value           : {get_value_atom('$1'), '$3'}.
+attribute_def -> string                     : get_value_atom('$1').
 
 value -> int      : get_value('$1').
 value -> float    : get_value('$1').
@@ -75,4 +75,16 @@ get_name({Token, _Line, _Value})  -> Token;
 get_name({Token, _Line})          -> Token.
 
 add_def({Defs, Opts}, Def) -> {maps:merge(Defs, Def), Opts}.
+
+
+init_opt({Key, Value}) -> #{Key => [Value]};
+init_opt(Opt) -> Opt.
+
+add_opt({Defs, Opts}, {Key, Value}) -> {Defs, get_and_update_opt(Opts, Key, Value)};
 add_opt({Defs, Opts}, Opt) -> {Defs, maps:merge(Opts, Opt)}.
+
+get_and_update_opt(Opts, Key, Value) ->
+    ExistingValue = maps:get(Key, Opts),
+    maps:put(Key, [Value | ExistingValue], Opts).
+    
+    
