@@ -38,10 +38,10 @@ defmodule Eflatbuffers do
   def write(map, schema) do
     try do
       {:ok, write!(map, schema)}
-    catch
-      error -> error
     rescue
       error -> {:error, error}
+    catch
+      error -> error
     end
   end
 
@@ -75,20 +75,20 @@ defmodule Eflatbuffers do
   def read(data, schema) do
     try do
       {:ok, read!(data, schema)}
-    catch
-      error -> error
     rescue
       error -> {:error, error}
+    catch
+      error -> error
     end
   end
 
   def get(data, path, schema) do
     try do
       {:ok, get!(data, path, schema)}
-    catch
-      error -> error
     rescue
       error -> {:error, error}
+    catch
+      error -> error
     end
   end
 
