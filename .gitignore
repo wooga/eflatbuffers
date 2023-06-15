@@ -9,3 +9,4 @@ erl_crash.dump
 *.trace
 *.tags
 *.tags_sorted_by_file
+priv/plts

@@ -10,7 +10,12 @@ defmodule Eflatbuffers.Mixfile do
       elixir: ">= 1.1.1",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
-      deps: deps()]
+      deps: deps(),
+      dialyzer: [
+        plt_add_deps: :apps_direct,
+        plt_file: {:no_warn, "priv/plts/project.plt"}
+      ]
+    ]
   end
 
   defp package() do
@@ -27,7 +32,7 @@ defmodule Eflatbuffers.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger]]
+    [applications: [:logger], extra_applications: [:crypto]]
   end
 
   # Dependencies can be Hex packages:
@@ -43,6 +48,7 @@ defmodule Eflatbuffers.Mixfile do
     [
       {:flatbuffer_port, git: "https://github.com/reimerei/elixir-flatbuffers", branch: "master", only: :test, override: true},
       {:ex_doc, ">= 0.0.0", only: :dev},
+      {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
     ]
   end
 end
