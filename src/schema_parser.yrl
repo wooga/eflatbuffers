@@ -1,5 +1,5 @@
 Nonterminals root definition option fields field key_def value attribute_def attributes atoms atom.
-Terminals  table struct enum union namespace root_type include attribute file_identifier file_extension float int bool string '}' '{' '(' ')' '[' ']' ';' ',' ':' '=' quote.
+Terminals  table enum union namespace root_type include attribute file_identifier file_extension float int bool string '}' '{' '(' ')' '[' ']' ';' ',' ':' '=' quote.
 Rootsymbol root.
 
 root -> definition      : {'$1', #{}}.
